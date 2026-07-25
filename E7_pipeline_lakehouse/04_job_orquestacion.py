@@ -49,7 +49,7 @@
 # MAGIC > por ejemplo: muestreo del dataset, `trigger(availableNow)` en vez de streaming continuo,
 # MAGIC > evitar `count()`/`display()` innecesarios, particionado o `OPTIMIZE` de tablas grandes.
 # MAGIC > Estimar además el costo mensual del pipeline si corriera en un workspace pagado
-# MAGIC > (DBU serverless × corridas) — conectar con la propuesta enterprise de E2.
+# MAGIC > (DBU serverless × corridas) — conectar con la arquitectura de referencia del Documento Formal de Arquitectura de Datos.
 # MAGIC
 # MAGIC ### Definition of Done (E7.4)
 # MAGIC - [ ] Job multi-tarea operativo con retries, timeout y alertas (capturas).

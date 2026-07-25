@@ -3,7 +3,7 @@
 # MAGIC # E7.3 · Silver → Gold: productos de datos
 # MAGIC **Cierra con:** M6 (construcción) + M9 (consumo)
 # MAGIC
-# MAGIC Gold materializa el modelo dimensional de E3.1 y las tablas de KPIs que consumirá
+# MAGIC Gold materializa el modelo dimensional definido en el Documento Formal de Arquitectura de Datos y las tablas de KPIs que consumirá
 # MAGIC el dashboard E8. **Cada tabla gold debe responder a UNA pregunta de UN stakeholder
 # MAGIC del caso** — si no pueden nombrar al consumidor, la tabla no debería existir.
 # MAGIC
@@ -38,7 +38,7 @@
 # DBTITLE 1: ✏️ TODO — gld_checkins_diarios, gld_salud_resenas y el esquema estrella
 # Requisitos:
 #  - dim_fecha generada programáticamente (sequence + explode).
-#  - dim_negocio con SCD según lo decidido en E3.1.
+#  - dim_negocio con SCD según lo decidido en el modelo lógico del Documento Formal de Arquitectura de Datos.
 #  - fact_resena con FKs declaradas hacia las dimensiones.
 #  - Todas las tablas con COMMENT (recuerden: alimentan el diccionario E4).
 

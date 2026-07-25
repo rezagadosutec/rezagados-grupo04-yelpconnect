@@ -12,6 +12,9 @@
 # MAGIC | Metadata de negocio (descripción, dominio, uso, retención, normativa, owner) | Acuerdo entre áreas | La **redacta el grupo** en el Excel institucional |
 # MAGIC
 # MAGIC Si el borrador autogenerado sale con huecos, la deuda está en el DDL de E3, no aquí.
+# MAGIC
+# MAGIC > **Trazabilidad —** este entregable **implementa** la sección «Anexo · Diccionario de datos» del
+# MAGIC > **Documento Formal de Arquitectura de Datos**. El Excel institucional se anexa al documento; esta tabla Delta permite auditar automáticamente la cobertura de documentación contra el catálogo.
 
 # COMMAND ----------
 
@@ -138,7 +141,7 @@ for fila in spark.sql("""
                       f"SET TAGS ('clasificacion' = '{fila.clase}')")
         except Exception as e:
             print(f"⚠️ {fila.nombre_fisico}: {str(e)[:90]}")
-print("Tags de clasificación aplicados ✔ (insumo directo de E6.2)")
+print("Tags de clasificación aplicados ✔ (insumo directo de E6)")
 
 # COMMAND ----------
 

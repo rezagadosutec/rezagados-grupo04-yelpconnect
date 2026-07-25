@@ -1,10 +1,20 @@
 # Capstone Project — Plataforma de Datos YelpConnect
 ### Programa de Arquitectura de Datos · UTEC
 
-Este repositorio es el **esqueleto base** que cada grupo usará para desplegar sus
-entregables del Capstone en **Databricks Free Edition**. La estructura sigue las
-8 líneas de trabajo del caso YelpConnect y se va completando a medida que cierra
-cada módulo del programa.
+Este repositorio es el **esqueleto base** que cada grupo usará para desplegar los
+entregables **ejecutables** del Capstone en **Databricks Free Edition**.
+
+> **Importante — dónde vive cada entregable.**
+> El Capstone tiene **dos soportes complementarios**:
+>
+> | Soporte | Qué contiene | Naturaleza |
+> |---|---|---|
+> | **Documento Formal de Arquitectura de Datos** | Visión y SoAW, arquitectura de referencia (ABB/SBB), modelos conceptual y lógico, estrategia de gobierno y matriz RACI, definición de reglas en lenguaje de negocio, requerimientos de información | Diseño, definiciones y conceptual |
+> | **Este repositorio (Databricks)** | Modelo físico, glosario y diccionario operativos, motor de calidad, controles técnicos, pipeline, dashboard | Implementación y evidencia ejecutable |
+>
+> Regla de oro: **el documento define QUÉ y POR QUÉ; la plataforma demuestra QUE SE CUMPLE.**
+> Ningún notebook rehace el diseño: cada uno declara en su cabecera qué sección del
+> documento formal implementa (bloque **Trazabilidad**).
 
 ---
 
@@ -18,7 +28,7 @@ cada módulo del programa.
 3. Crear un repositorio **fork/clon de este esqueleto** en GitHub
    (nombre sugerido: `capstone-grupoNN-yelpconnect`).
 4. En Databricks: `Workspace → Create → Git folder` y conectar el repo del grupo.
-5. Ejecutar `00_setup/00_configurar_lakehouse` — crea schemas, volume y tablas de control.
+5. Ejecutar `00_setup/00_configurar_lakehouse` — crea schemas, volumes y tablas de control.
 6. Preparar la muestra de datos con `datos/preparar_muestra_yelp.py` (se corre
    **en tu laptop**, no en Databricks) y subir los archivos resultantes al Volume.
 7. Ejecutar `00_setup/01_verificar_datos_raw` para validar que todo está en su lugar.
@@ -30,32 +40,35 @@ cada módulo del programa.
 | Catálogo | `workspace` (el default de Free Edition) |
 | Schemas | `yelp_bronze`, `yelp_silver`, `yelp_gold`, `yelp_gov` |
 | Volume de datos crudos | `/Volumes/workspace/yelp_bronze/raw/` |
+| Volume de artefactos de gobierno | `/Volumes/workspace/yelp_gov/artefactos/` |
 | Tablas bronze | `brz_<entidad>` (ej. `brz_business`) |
 | Tablas silver | `slv_<entidad>` |
 | Tablas gold | `gld_<producto_de_datos>` (ej. `gld_kpi_resenas_negocio`) |
 | Vistas | `vw_<nombre>` |
+| Reglas de calidad | `DQ-nnn`, correlativas y únicas |
 | Idioma de comentarios/metadata | Español (o inglés, pero consistente) |
 | Ramas Git | `main` protegida; trabajar en `feature/E<k>-<tema>` y merge por PR |
 
 ## 3. Mapa entregable ↔ carpeta ↔ módulo
 
-| Entregable Capstone | Carpeta | Módulo que lo cierra |
-|---|---|---|
-| E1. Visión de Arquitectura (SoAW) | `E1_vision_arquitectura` | M1 Fundamentos y Estrategia |
-| E2. Arquitectura ABB/SBB (Arq. de Referencia) | `E2_arquitectura_abb_sbb` | M5 Arquitectura Cloud (base en M1) |
-| E3. Modelo de datos (conceptual/lógico/físico) | `E3_modelo_datos` | M4 Modelado Avanzado |
-| E4. Diccionario y Glosario de Negocio | `E4_diccionario_glosario` | M3 MDM y Metadata |
-| E5. Reglas de Calidad de Datos | `E5_calidad_datos` | M2/M3 (implementación tras M6) |
-| E6. Estrategia y controles de Gobierno | `E6_gobierno_datos` | M2 Seguridad y Gobierno |
-| E7. Pipeline de ingesta y habilitación | `E7_pipeline_lakehouse` | M6 Big Data + M7 Integración |
-| E8. Dashboard BI + Genie | `E8_dashboard_bi` | M9 BI y Visualización |
-| EX. Bonus: IA sobre reseñas | `EX_bonus_ia` | M8 IA y No Estructurados |
-| Operación (job, monitoreo, FinOps) | `E7.../04_job_orquestacion` | M10 DataOps/MLOps/FinOps |
+Los entregables **E1, E2 y las definiciones conceptuales de E3 y E6** no viven aquí:
+son secciones del Documento Formal. Lo que sigue es lo que se despliega en la plataforma.
+
+| Entregable ejecutable | Carpeta | Módulo que lo cierra | Sección del Documento Formal que implementa |
+|---|---|---|---|
+| E3. Modelo físico (DDL sobre Delta / UC) | `E3_modelo_fisico` | M4 Modelado Avanzado | Modelos conceptual y lógico |
+| E4. Glosario y Diccionario operativos | `E4_diccionario_glosario` | M3 MDM y Metadata | Anexos de glosario y diccionario |
+| E5. Motor de reglas de calidad | `E5_calidad_datos` | M2/M3 (definición) · M6 (ejecución) | Reglas de calidad en lenguaje de negocio |
+| E6. Controles técnicos de gobierno | `E6_controles_gobierno` | M2 (diseño) · M5 (implementación) | Estrategia de gobierno, roles y RACI |
+| E7. Pipeline de ingesta y habilitación | `E7_pipeline_lakehouse` | M6 Big Data + M7 Integración | Arquitectura de referencia (ABB/SBB) |
+| E8. Dashboard BI + Genie | `E8_dashboard_bi` | M9 BI y Visualización | Requerimientos de información y KPIs |
+| EX. Bonus: IA sobre reseñas | `EX_bonus_ia` | M8 IA y No Estructurados | Casos de uso analíticos avanzados |
+| Operación (job, monitoreo, FinOps) | `E7.../04_job_orquestacion` | M10 DataOps/MLOps/FinOps | Modelo operativo de la plataforma |
 
 ## 3.1 Artefactos institucionales de gobierno (E4)
 
-El glosario y el diccionario **no se inventan en formato libre**: se completan en las
-plantillas oficiales del bloque de Seguridad, Gobernanza y Compliance, que están en
+El glosario y el diccionario **no se redactan en formato libre**: se completan en las
+plantillas oficiales del bloque de Seguridad, Gobernanza y Compliance, disponibles en
 `E4_diccionario_glosario/plantillas/`:
 
 | Plantilla | Hojas | Se carga en |
@@ -72,8 +85,9 @@ respectivamente), así que el Excel no se traduce: se carga. Flujo:
 4. Los validadores comprueban cobertura, ownership, clasificación y que toda regla citada
    como `DQ-nnn` exista realmente en `yelp_gov.dq_reglas`.
 
-El diccionario cierra el círculo: su columna de clasificación se aplica como **tag real**
-en Unity Catalog y alimenta los permisos de E6.
+Los dos Excel completados se **anexan además al Documento Formal**: son el mismo archivo,
+no dos versiones distintas. El diccionario cierra el círculo cuando su columna de
+clasificación se aplica como **tag real** en Unity Catalog y alimenta los permisos de E6.
 
 ## 4. Reglas de juego en Free Edition
 
@@ -87,7 +101,28 @@ en Unity Catalog y alimenta los permisos de E6.
 
 ## 5. Definition of Done global
 
-Un entregable está terminado cuando: (a) el notebook corre de inicio a fin sin errores,
-(b) las tablas/objetos existen en el schema correcto con comentarios y tags,
-(c) el markdown del notebook documenta decisiones y supuestos, y
-(d) está en `main` vía Pull Request revisado por al menos otro integrante.
+Un entregable de plataforma está terminado cuando:
+
+1. El notebook corre de inicio a fin sin errores y sus validadores pasan.
+2. Las tablas y objetos existen en el schema correcto, con comentarios y tags.
+3. La cabecera declara qué sección del Documento Formal implementa, y **no contradice** esa
+   sección (si la implementación obligó a cambiar el diseño, se actualiza el documento y se
+   deja constancia de la decisión).
+4. El markdown del notebook documenta decisiones y supuestos propios de la implementación.
+5. Está en `main` vía Pull Request revisado por al menos otro integrante.
+
+## 6. Orden de ejecución recomendado
+
+```
+00_setup/00_configurar_lakehouse      →  00_setup/01_verificar_datos_raw
+      ↓
+E7/01_bronze_ingesta                  →  E3/01_modelo_fisico_ddl
+      ↓
+E7/02_silver_limpieza                 →  E4/01_glosario · E4/02_diccionario
+      ↓
+E5/01_reglas_calidad                  →  E6/01_controles_unity_catalog
+      ↓
+E7/03_gold_productos_datos            →  E8/01_consultas_base_dashboard
+      ↓
+E7/04_job_orquestacion                →  EX/01_analisis_ia_resenas (bonus)
+```

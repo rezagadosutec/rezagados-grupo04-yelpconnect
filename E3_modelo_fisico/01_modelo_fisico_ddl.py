@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # E3.2 · Modelo Físico — DDL sobre Delta Lake / Unity Catalog
+# MAGIC # E3 · Modelo Físico — DDL sobre Delta Lake / Unity Catalog
 # MAGIC **Cierra con:** M4 Modelado Avanzado · Se implementa en `yelp_silver` (conformado) y `yelp_gold` (dimensional).
 # MAGIC
 # MAGIC Reglas del entregable:
@@ -10,6 +10,9 @@
 # MAGIC 3. Constraints sí enforzadas donde aplique: `NOT NULL` y `CHECK`.
 # MAGIC
 # MAGIC Abajo va UNA tabla completa de ejemplo; el grupo completa el resto según su modelo lógico.
+# MAGIC
+# MAGIC > **Trazabilidad —** este entregable **implementa** la sección «Modelos conceptual y lógico» del
+# MAGIC > **Documento Formal de Arquitectura de Datos**. Este notebook es la materialización física de ese modelo: cada entidad y atributo del modelo lógico debe existir aquí como tabla y columna con su COMMENT.
 
 # COMMAND ----------
 
@@ -50,7 +53,7 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC -- ✏️ TODO (grupo): capa GOLD dimensional según E3.1
+# MAGIC -- ✏️ TODO (grupo): capa GOLD dimensional según el modelo lógico del Documento Formal de Arquitectura de Datos
 # MAGIC -- dim_negocio, dim_usuario, dim_fecha, fact_resena, fact_checkin_diario
 # MAGIC -- Recordar: PK/FK informativas entre hechos y dimensiones.
 
@@ -72,7 +75,7 @@ print("✔ Modelo físico validado: todas las columnas documentadas")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Definition of Done (E3.2)
+# MAGIC ### Definition of Done (E3)
 # MAGIC - [ ] DDL completo de silver (5 entidades mínimo) y gold (esquema estrella).
 # MAGIC - [ ] 100% de columnas con COMMENT (la celda de validación pasa).
 # MAGIC - [ ] PK/FK declaradas y CHECK donde el negocio lo exige.

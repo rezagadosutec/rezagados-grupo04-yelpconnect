@@ -1,19 +1,22 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # E6.2 · Controles técnicos de gobierno en Unity Catalog
+# MAGIC # E6 · Controles técnicos de gobierno en Unity Catalog
 # MAGIC **Cierra con:** M2 (diseño) + M5 (implementación en plataforma)
 # MAGIC
-# MAGIC La estrategia de E6.1 se **implementa** aquí con 4 controles nativos de UC:
+# MAGIC La estrategia de gobierno definida en el Documento Formal de Arquitectura de Datos se **implementa** aquí con 4 controles nativos de UC:
 # MAGIC tags de clasificación, permisos (GRANT), enmascaramiento de PII con vistas/funciones,
 # MAGIC y evidencia de lineage. En Free Edition los 5 integrantes son usuarios del mismo
 # MAGIC workspace → cada integrante "actúa" un rol del caso para probar los permisos.
+# MAGIC
+# MAGIC > **Trazabilidad —** este entregable **implementa** la sección «Estrategia de gobierno: roles, matriz RACI y políticas de clasificación» del
+# MAGIC > **Documento Formal de Arquitectura de Datos**. Aquí se implementan los controles que hacen exigible esa estrategia. Un rol sin GRANT y una clasificación sin tag son gobierno declarativo, no efectivo.
 
 # COMMAND ----------
 
 # DBTITLE 1: Control 1 — Clasificación con tags
 # MAGIC %sql
 # MAGIC -- Etiquetar el schema y las columnas sensibles.
-# MAGIC -- ✏️ TODO: completar según la matriz RACI (columna 'clasificacion')
+# MAGIC -- ✏️ TODO: completar según la matriz RACI aprobada en el Documento Formal de Arquitectura de Datos
 # MAGIC -- ALTER SCHEMA workspace.yelp_silver SET TAGS ('capa' = 'silver', 'dominio' = 'yelpconnect');
 # MAGIC -- ALTER TABLE workspace.yelp_silver.slv_user ALTER COLUMN nombre SET TAGS ('clasificacion' = 'pii');
 
@@ -59,7 +62,7 @@
 # MAGIC > (raw → bronze → silver → gold → dashboard) para la entidad `review`, respondiendo
 # MAGIC > directamente al dolor de Trust & Safety: "reglas de fraude sin linaje claro".
 # MAGIC
-# MAGIC ### Definition of Done (E6.2)
+# MAGIC ### Definition of Done (E6)
 # MAGIC - [ ] Tags de clasificación aplicados a schemas y columnas PII.
 # MAGIC - [ ] GRANTs ejecutados + captura de un usuario "Marketing" intentando (y fallando) leer bronze.
 # MAGIC - [ ] Máscara PII funcionando: captura del mismo SELECT con dos usuarios distintos.

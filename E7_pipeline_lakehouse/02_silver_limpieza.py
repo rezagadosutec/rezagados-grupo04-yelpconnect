@@ -3,7 +3,7 @@
 # MAGIC # E7.2 · Bronze → Silver: limpieza y conformación
 # MAGIC **Cierra con:** M6 Big Data
 # MAGIC
-# MAGIC Silver materializa el **modelo físico de E3.2**: mismos nombres, mismos tipos,
+# MAGIC Silver materializa el **modelo físico de E3**: mismos nombres, mismos tipos,
 # MAGIC mismas constraints. Las transformaciones deben atacar los dolores del caso:
 # MAGIC deduplicación de reseñas (Marketing), normalización de check-ins (Ops Comerciales).
 # MAGIC
@@ -73,7 +73,7 @@ print("✔ Gate de calidad superado")
 
 # MAGIC %md
 # MAGIC ### Definition of Done (E7.2)
-# MAGIC - [ ] Todas las entidades silver pobladas conforme al DDL de E3.2.
+# MAGIC - [ ] Todas las entidades silver pobladas conforme al DDL de E3.
 # MAGIC - [ ] Deduplicación de reseñas con criterio documentado + tabla de cuarentena operativa.
 # MAGIC - [ ] Check-ins explotados a grano evento.
 # MAGIC - [ ] Gate de calidad integrado y funcionando.

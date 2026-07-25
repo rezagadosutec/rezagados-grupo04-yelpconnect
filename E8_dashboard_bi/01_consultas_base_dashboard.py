@@ -15,6 +15,9 @@
 # MAGIC eso valida la arquitectura de capas), y cada visual declara a qué stakeholder responde.
 # MAGIC
 # MAGIC Este notebook deja listas las consultas base; el ensamblado se hace en la UI.
+# MAGIC
+# MAGIC > **Trazabilidad —** este entregable **implementa** la sección «Requerimientos de información y KPIs por stakeholder» del
+# MAGIC > **Documento Formal de Arquitectura de Datos**. Cada visual de este dashboard debe responder a un requerimiento declarado en el documento; un KPI sin stakeholder que lo pidió no va al tablero.
 
 # COMMAND ----------
 

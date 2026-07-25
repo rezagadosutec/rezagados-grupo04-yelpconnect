@@ -16,6 +16,9 @@
 # MAGIC
 # MAGIC > La tabla Delta tiene **exactamente las 12 columnas de la plantilla**: el Excel no se
 # MAGIC > "traduce", se carga. Ese es el principio de un glosario vivo.
+# MAGIC
+# MAGIC > **Trazabilidad —** este entregable **implementa** la sección «Anexo · Glosario de términos de negocio» del
+# MAGIC > **Documento Formal de Arquitectura de Datos**. El Excel institucional se anexa al documento; esta tabla Delta es la versión consultable desde Genie y el dashboard de gobierno.
 
 # COMMAND ----------
 

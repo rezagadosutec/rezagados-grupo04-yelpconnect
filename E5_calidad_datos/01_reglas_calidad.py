@@ -9,6 +9,9 @@
 # MAGIC
 # MAGIC **Mínimo 12 reglas** cubriendo las 6 dimensiones de calidad y los dolores del caso
 # MAGIC (duplicidad de reseñas, check-ins inconsistentes, integridad referencial).
+# MAGIC
+# MAGIC > **Trazabilidad —** este entregable **implementa** la sección «Reglas de calidad de datos (definición en lenguaje de negocio)» del
+# MAGIC > **Documento Formal de Arquitectura de Datos**. Aquí se implementan y ejecutan esas reglas: el documento define QUÉ debe cumplirse y por qué; la plataforma demuestra que se cumple.
 
 # COMMAND ----------
 

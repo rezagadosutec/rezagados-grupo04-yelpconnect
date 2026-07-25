@@ -10,6 +10,9 @@
 # MAGIC - **Batch full** (mínimo obligatorio): `read_files` sobre el Volume.
 # MAGIC - **Incremental con Auto Loader** (obligatorio para al menos UNA entidad, se ve en M7):
 # MAGIC   demuestra ingesta idempotente — si suben un archivo nuevo al Volume, solo procesa lo nuevo.
+# MAGIC
+# MAGIC > **Trazabilidad —** este entregable **implementa** la sección «Arquitectura de referencia (ABB / SBB)» del
+# MAGIC > **Documento Formal de Arquitectura de Datos**. Este pipeline es el SBB que implementa los bloques de ingesta y almacenamiento definidos en el documento.
 
 # COMMAND ----------
 
