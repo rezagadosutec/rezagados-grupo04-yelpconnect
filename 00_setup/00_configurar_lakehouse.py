@@ -12,7 +12,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("grupo", "00", "Número de grupo")
+dbutils.widgets.text("grupo", "04", "Número de grupo")
 GRUPO = dbutils.widgets.get("grupo")
 CATALOGO = "workspace"  # catálogo por defecto de Free Edition
 print(f"Configurando lakehouse del Grupo {GRUPO} en el catálogo '{CATALOGO}'")
