@@ -31,3 +31,18 @@ for e in ESPERADOS:
 # MAGIC > ✏️ **TODO (grupo):** anotar aquí en markdown 3 observaciones sobre los datos crudos
 # MAGIC > (campos anidados, tipos sospechosos, posibles problemas de calidad). Estas
 # MAGIC > observaciones alimentan E3 (modelado) y E5 (reglas de calidad).
+# MAGIC
+# MAGIC > ✏️ **Observaciones sobre los datos crudos:**
+# MAGIC > 1. `business` contiene estructuras anidadas (`attributes` y `hours`). Para el modelado
+# MAGIC >    será necesario decidir si se normalizan en tablas/columnas separadas o si se
+# MAGIC >    conservan como estructuras; además, `categories` llega como una cadena con varias
+# MAGIC >    categorías, por lo que puede requerir una tabla puente.
+# MAGIC > 2. Hay varios campos potencialmente sospechosos por su representación: los atributos
+# MAGIC >    de `business` son `string` aunque contienen valores booleanos, listas o rangos, y
+# MAGIC >    `checkin.date` es una cadena con fechas concatenadas. También conviene convertir
+# MAGIC >    `date`/`yelping_since` a tipos de fecha y validar rangos y formatos.
+# MAGIC > 3. Deben controlarse problemas de calidad e integridad: valores nulos en campos clave,
+# MAGIC >    duplicados de identificadores, referencias de `business_id`/`user_id` sin pareja,
+# MAGIC >    estrellas fuera del rango esperado (1–5) y conteos negativos. Las reseñas y tips
+# MAGIC >    contienen texto libre, que requiere considerar PII indirecta y reglas de limpieza.
+
