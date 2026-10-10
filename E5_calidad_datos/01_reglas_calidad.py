@@ -15,25 +15,27 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Catálogo de reglas (3 ejemplos resueltos — completar hasta ≥12)
+# DBTITLE 1: Catálogo de reglas de calidad alineado al modelo físico E3
 from pyspark.sql import Row
 
+S = "workspace.yelp_silver"
 reglas = [
-    Row(regla_id="DQ-001", tabla_objetivo="workspace.yelp_silver.slv_review",
-        columna="stars", dimension="validez",
-        descripcion="El rating de una reseña debe estar entre 1 y 5",
-        expresion_sql="stars BETWEEN 1 AND 5", criticidad="alta", umbral_pct=100.0),
-    Row(regla_id="DQ-002", tabla_objetivo="workspace.yelp_silver.slv_review",
-        columna="review_id", dimension="unicidad",
-        descripcion="No deben existir reseñas duplicadas (dolor de Marketing)",
-        expresion_sql="review_id IS NOT NULL", criticidad="alta", umbral_pct=100.0),
-    Row(regla_id="DQ-003", tabla_objetivo="workspace.yelp_silver.slv_review",
-        columna="business_id", dimension="integridad",
-        descripcion="Toda reseña referencia un negocio existente",
-        expresion_sql="business_id IN (SELECT business_id FROM workspace.yelp_silver.slv_business)",
-        criticidad="alta", umbral_pct=99.5),
-    # ✏️ TODO — ≥9 reglas más. Deben cubrir: completitud, consistencia y actualidad,
-    #           e incluir al menos una regla por cada entidad silver.
+    Row(regla_id="DQ-001", tabla_objetivo=f"{S}.slv_review", columna="estrellas", dimension="validez", descripcion="Toda reseña tiene entre 1 y 5 estrellas", expresion_sql="estrellas BETWEEN 1 AND 5", criticidad="alta", umbral_pct=100.0),
+    Row(regla_id="DQ-002", tabla_objetivo=f"{S}.slv_review", columna="review_id", dimension="unicidad", descripcion="No existen dos reseñas con el mismo review_id", expresion_sql="review_id IS NOT NULL", criticidad="alta", umbral_pct=100.0),
+    Row(regla_id="DQ-003", tabla_objetivo=f"{S}.slv_review", columna="business_id", dimension="integridad", descripcion="Toda reseña referencia un negocio existente", expresion_sql="business_id IN (SELECT business_id FROM workspace.yelp_silver.slv_business)", criticidad="alta", umbral_pct=99.5),
+    Row(regla_id="DQ-004", tabla_objetivo=f"{S}.slv_business", columna="business_id", dimension="unicidad", descripcion="No existen dos negocios con el mismo business_id", expresion_sql="business_id IS NOT NULL", criticidad="alta", umbral_pct=100.0),
+    Row(regla_id="DQ-006", tabla_objetivo=f"{S}.slv_checkin", columna="fecha_hora_checkin", dimension="consistencia", descripcion="Cada check-in tiene timestamp válido", expresion_sql="fecha_hora_checkin IS NOT NULL AND fecha_key IS NOT NULL", criticidad="alta", umbral_pct=99.5),
+    Row(regla_id="DQ-007", tabla_objetivo=f"{S}.slv_checkin", columna="fecha_hora_checkin", dimension="actualidad", descripcion="Un check-in no puede estar fechado en el futuro", expresion_sql="fecha_hora_checkin <= current_timestamp()", criticidad="media", umbral_pct=99.5),
+    Row(regla_id="DQ-010", tabla_objetivo=f"{S}.slv_user", columna="user_id", dimension="unicidad", descripcion="No existen dos usuarios con el mismo user_id", expresion_sql="user_id IS NOT NULL", criticidad="alta", umbral_pct=100.0),
+    Row(regla_id="DQ-011", tabla_objetivo=f"{S}.slv_review", columna="user_id", dimension="integridad", descripcion="Toda reseña referencia un usuario existente", expresion_sql="user_id IN (SELECT user_id FROM workspace.yelp_silver.slv_user)", criticidad="alta", umbral_pct=99.5),
+    Row(regla_id="DQ-012", tabla_objetivo=f"{S}.slv_checkin", columna="business_id", dimension="integridad", descripcion="Todo check-in referencia un negocio existente", expresion_sql="business_id IN (SELECT business_id FROM workspace.yelp_silver.slv_business)", criticidad="alta", umbral_pct=99.5),
+    Row(regla_id="DQ-013", tabla_objetivo=f"{S}.slv_review", columna="texto", dimension="completitud", descripcion="Toda reseña habilitada tiene texto no vacío", expresion_sql="texto IS NOT NULL AND trim(texto) <> ''", criticidad="media", umbral_pct=99.5),
+    Row(regla_id="DQ-014", tabla_objetivo=f"{S}.slv_business_category", columna="categoria_key", dimension="validez", descripcion="Toda categoría asignada pertenece al catálogo gobernado", expresion_sql="categoria_key IN (SELECT categoria_key FROM workspace.yelp_silver.slv_category)", criticidad="media", umbral_pct=99.5),
+    Row(regla_id="DQ-015", tabla_objetivo=f"{S}.slv_business", columna="nombre", dimension="completitud", descripcion="Todo negocio tiene nombre no vacío", expresion_sql="nombre IS NOT NULL AND trim(nombre) <> ''", criticidad="alta", umbral_pct=100.0),
+    Row(regla_id="DQ-016", tabla_objetivo=f"{S}.slv_business", columna="estrellas", dimension="validez", descripcion="El rating del negocio está entre 1 y 5", expresion_sql="estrellas IS NULL OR estrellas BETWEEN 1 AND 5", criticidad="alta", umbral_pct=100.0),
+    Row(regla_id="DQ-017", tabla_objetivo=f"{S}.slv_checkin", columna="hora", dimension="validez", descripcion="La hora del check-in está entre 0 y 23", expresion_sql="hora IS NULL OR hora BETWEEN 0 AND 23", criticidad="alta", umbral_pct=100.0),
+    Row(regla_id="DQ-018", tabla_objetivo=f"{S}.slv_review", columna="fecha_resena", dimension="consistencia", descripcion="Toda reseña habilitada tiene fecha válida", expresion_sql="fecha_resena IS NOT NULL", criticidad="alta", umbral_pct=100.0),
+    Row(regla_id="DQ-019", tabla_objetivo=f"{S}.slv_business_category", columna="business_id", dimension="integridad", descripcion="Toda relación categoría-negocio referencia un negocio existente", expresion_sql="business_id IN (SELECT business_id FROM workspace.yelp_silver.slv_business)", criticidad="alta", umbral_pct=100.0),
 ]
 spark.createDataFrame(reglas).write.mode("overwrite").saveAsTable("workspace.yelp_gov.dq_reglas")
 display(spark.table("workspace.yelp_gov.dq_reglas"))
@@ -79,7 +81,8 @@ display(evaluar_reglas())
 
 # MAGIC %md
 # MAGIC ### Definition of Done (E5)
-# MAGIC - [ ] ≥12 reglas en las 6 dimensiones, con criticidad y umbral justificados.
+# MAGIC - [x] 16 reglas en las 6 dimensiones, alineadas con las columnas físicas de E3.
+# MAGIC - [ ] DQ-005 sobre Tip queda fuera de alcance porque `slv_tip` no existe en el modelo físico aprobado.
 # MAGIC - [ ] Motor ejecutado con historial en `dq_resultados` (≥2 corridas en fechas distintas).
 # MAGIC - [ ] Para cada regla FALLIDA: decisión documentada (cuarentena, corrección en pipeline, o aceptación del riesgo con firma del "Data Owner").
 # MAGIC - [ ] Bonus: agregar constraint `CHECK` o expectativa en el pipeline E7 para la regla más crítica (calidad *preventiva* vs *detectiva*).
