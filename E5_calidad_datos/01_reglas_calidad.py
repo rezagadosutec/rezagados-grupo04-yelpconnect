@@ -67,15 +67,24 @@ display(evaluar_reglas())
 # COMMAND ----------
 
 # DBTITLE 1: Scorecard de calidad (insumo directo del dashboard E8)
-# MAGIC %sql
-# MAGIC SELECT r.dimension,
-# MAGIC        count(*)                                    AS reglas,
-# MAGIC        sum(CASE WHEN res.paso THEN 1 ELSE 0 END)   AS reglas_ok,
-# MAGIC        round(avg(res.pct_cumplimiento), 2)         AS cumplimiento_promedio
-# MAGIC FROM workspace.yelp_gov.dq_resultados res
-# MAGIC JOIN workspace.yelp_gov.dq_reglas r USING (regla_id)
-# MAGIC WHERE res.ejecucion_ts = (SELECT max(ejecucion_ts) FROM workspace.yelp_gov.dq_resultados)
-# MAGIC GROUP BY r.dimension ORDER BY cumplimiento_promedio;
+# Se ejecuta como PySpark para evitar que Databricks interprete el SQL
+# como código Python cuando el notebook se importa desde un archivo .py.
+scorecard = spark.sql("""
+SELECT r.dimension,
+       count(*) AS reglas,
+       sum(CASE WHEN res.paso THEN 1 ELSE 0 END) AS reglas_ok,
+       round(avg(res.pct_cumplimiento), 2) AS cumplimiento_promedio
+FROM workspace.yelp_gov.dq_resultados res
+JOIN workspace.yelp_gov.dq_reglas r USING (regla_id)
+WHERE res.ejecucion_ts = (
+    SELECT max(ejecucion_ts)
+    FROM workspace.yelp_gov.dq_resultados
+)
+GROUP BY r.dimension
+ORDER BY cumplimiento_promedio
+""")
+display(scorecard)
+
 
 # COMMAND ----------
 
