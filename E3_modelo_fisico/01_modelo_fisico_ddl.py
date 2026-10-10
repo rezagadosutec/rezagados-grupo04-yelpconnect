@@ -6,7 +6,7 @@
 # MAGIC Principios aplicados:
 # MAGIC 1. Toda tabla y columna tiene `COMMENT`; esta metadata alimenta E4.
 # MAGIC 2. Las claves primarias y foráneas son constraints informativas de Unity Catalog.
-# MAGIC 3. `NOT NULL` y `CHECK` se utilizan donde la regla de negocio es estructural.
+# MAGIC 3. `NOT NULL` se utiliza donde la regla de negocio es estructural; las validaciones de rango se ejecutan en las reglas de calidad y en las transformaciones de Silver/Gold.
 # MAGIC 4. Silver conserva el grano operacional; Gold prepara dimensiones, hechos y el mart mensual que consumirá Power BI.
 # MAGIC
 # MAGIC El mart `gld_dashboard_negocio_mensual` contiene las ventanas, benchmarks,
@@ -31,10 +31,7 @@
 # MAGIC   n_resenas INT COMMENT 'Cantidad acumulada de reseñas publicada por el negocio',
 # MAGIC   esta_abierto BOOLEAN COMMENT 'Indica si el negocio está operativo según el origen',
 # MAGIC   fecha_carga TIMESTAMP COMMENT 'Timestamp de procesamiento de la fila',
-# MAGIC   CONSTRAINT pk_slv_business PRIMARY KEY (business_id),
-# MAGIC   CONSTRAINT chk_slv_business_stars CHECK (estrellas BETWEEN 1.0 AND 5.0),
-# MAGIC   CONSTRAINT chk_slv_business_lat CHECK (latitud IS NULL OR latitud BETWEEN -90 AND 90),
-# MAGIC   CONSTRAINT chk_slv_business_lon CHECK (longitud IS NULL OR longitud BETWEEN -180 AND 180)
+# MAGIC   CONSTRAINT pk_slv_business PRIMARY KEY (business_id)
 # MAGIC ) COMMENT 'Entidad conformada de negocios locales. Grano: un registro por negocio.';
 
 # COMMAND ----------
@@ -44,8 +41,7 @@
 # MAGIC   categoria_key BIGINT NOT NULL COMMENT 'Clave sustituta de la categoría normalizada',
 # MAGIC   categoria STRING NOT NULL COMMENT 'Etiqueta de categoría proveniente de Yelp, sin jerarquía inventada',
 # MAGIC   fecha_carga TIMESTAMP COMMENT 'Timestamp de procesamiento de la fila',
-# MAGIC   CONSTRAINT pk_slv_category PRIMARY KEY (categoria_key),
-# MAGIC   CONSTRAINT uq_slv_category UNIQUE (categoria)
+# MAGIC   CONSTRAINT pk_slv_category PRIMARY KEY (categoria_key)
 # MAGIC ) COMMENT 'Categorías planas normalizadas desde business.categories. Grano: una fila por categoría.';
 
 # COMMAND ----------
@@ -105,8 +101,7 @@
 # MAGIC   estrellas_promedio DOUBLE COMMENT 'Rating promedio otorgado por el usuario',
 # MAGIC   elite ARRAY<STRING> COMMENT 'Años de reconocimiento Elite del usuario',
 # MAGIC   fecha_carga TIMESTAMP COMMENT 'Timestamp de procesamiento de la fila',
-# MAGIC   CONSTRAINT pk_slv_user PRIMARY KEY (user_id),
-# MAGIC   CONSTRAINT chk_slv_user_stars CHECK (estrellas_promedio IS NULL OR estrellas_promedio BETWEEN 1.0 AND 5.0)
+# MAGIC   CONSTRAINT pk_slv_user PRIMARY KEY (user_id)
 # MAGIC ) COMMENT 'Usuarios conformados para análisis de reseñas. Grano: un registro por usuario.';
 
 # COMMAND ----------
@@ -125,8 +120,7 @@
 # MAGIC   fecha_carga TIMESTAMP COMMENT 'Timestamp de procesamiento de la fila',
 # MAGIC   CONSTRAINT pk_slv_review PRIMARY KEY (review_id),
 # MAGIC   CONSTRAINT fk_slv_review_business FOREIGN KEY (business_id) REFERENCES workspace.yelp_silver.slv_business (business_id),
-# MAGIC   CONSTRAINT fk_slv_review_user FOREIGN KEY (user_id) REFERENCES workspace.yelp_silver.slv_user (user_id),
-# MAGIC   CONSTRAINT chk_slv_review_stars CHECK (estrellas BETWEEN 1 AND 5)
+# MAGIC   CONSTRAINT fk_slv_review_user FOREIGN KEY (user_id) REFERENCES workspace.yelp_silver.slv_user (user_id)
 # MAGIC ) COMMENT 'Reseñas conformadas. Grano: una fila por reseña válida o enviada a cuarentena.';
 
 # COMMAND ----------
@@ -143,8 +137,7 @@
 # MAGIC   es_fin_semana BOOLEAN COMMENT 'Indica si el evento ocurrió sábado o domingo',
 # MAGIC   fecha_carga TIMESTAMP COMMENT 'Timestamp de procesamiento de la fila',
 # MAGIC   CONSTRAINT pk_slv_checkin PRIMARY KEY (checkin_event_id),
-# MAGIC   CONSTRAINT fk_slv_checkin_business FOREIGN KEY (business_id) REFERENCES workspace.yelp_silver.slv_business (business_id),
-# MAGIC   CONSTRAINT chk_slv_checkin_hour CHECK (hora IS NULL OR hora BETWEEN 0 AND 23)
+# MAGIC   CONSTRAINT fk_slv_checkin_business FOREIGN KEY (business_id) REFERENCES workspace.yelp_silver.slv_business (business_id)
 # MAGIC ) COMMENT 'Check-ins explotados desde la cadena original. Grano: una fila por evento individual.';
 
 # COMMAND ----------
@@ -170,8 +163,7 @@
 # MAGIC   fecha_fin DATE COMMENT 'Fin de vigencia del registro dimensional',
 # MAGIC   es_actual BOOLEAN COMMENT 'Indica si es la versión vigente del negocio',
 # MAGIC   fecha_carga TIMESTAMP COMMENT 'Timestamp de carga de la dimensión',
-# MAGIC   CONSTRAINT pk_dim_negocio PRIMARY KEY (business_key),
-# MAGIC   CONSTRAINT uq_dim_negocio_business_id UNIQUE (business_id)
+# MAGIC   CONSTRAINT pk_dim_negocio PRIMARY KEY (business_key)
 # MAGIC ) COMMENT 'Dimensión de negocios para relacionar los hechos y los productos de BI.';
 
 # COMMAND ----------
@@ -185,8 +177,7 @@
 # MAGIC   fecha_alta DATE COMMENT 'Fecha de alta del usuario',
 # MAGIC   es_actual BOOLEAN COMMENT 'Indica si el registro es la versión vigente',
 # MAGIC   fecha_carga TIMESTAMP COMMENT 'Timestamp de carga de la dimensión',
-# MAGIC   CONSTRAINT pk_dim_usuario PRIMARY KEY (user_key),
-# MAGIC   CONSTRAINT uq_dim_usuario_user_id UNIQUE (user_id)
+# MAGIC   CONSTRAINT pk_dim_usuario PRIMARY KEY (user_key)
 # MAGIC ) COMMENT 'Dimensión de usuarios para análisis de autores de reseñas y propinas.';
 
 # COMMAND ----------
@@ -214,8 +205,7 @@
 # MAGIC   categoria_key BIGINT NOT NULL COMMENT 'Clave sustituta de la categoría',
 # MAGIC   categoria STRING NOT NULL COMMENT 'Nombre normalizado de la categoría del negocio',
 # MAGIC   fecha_carga TIMESTAMP COMMENT 'Timestamp de carga de la dimensión',
-# MAGIC   CONSTRAINT pk_dim_categoria PRIMARY KEY (categoria_key),
-# MAGIC   CONSTRAINT uq_dim_categoria UNIQUE (categoria)
+# MAGIC   CONSTRAINT pk_dim_categoria PRIMARY KEY (categoria_key)
 # MAGIC ) COMMENT 'Dimensión de categorías para segmentar benchmarks y métricas de negocio.';
 
 # COMMAND ----------
@@ -246,11 +236,9 @@
 # MAGIC   votos_geniales INT COMMENT 'Votos geniales de la reseña',
 # MAGIC   fecha_carga TIMESTAMP COMMENT 'Timestamp de carga del hecho',
 # MAGIC   CONSTRAINT pk_fact_resena PRIMARY KEY (review_key),
-# MAGIC   CONSTRAINT uq_fact_resena_review_id UNIQUE (review_id),
 # MAGIC   CONSTRAINT fk_fact_resena_business FOREIGN KEY (business_key) REFERENCES workspace.yelp_gold.dim_negocio (business_key),
 # MAGIC   CONSTRAINT fk_fact_resena_user FOREIGN KEY (user_key) REFERENCES workspace.yelp_gold.dim_usuario (user_key),
-# MAGIC   CONSTRAINT fk_fact_resena_fecha FOREIGN KEY (fecha_key) REFERENCES workspace.yelp_gold.dim_fecha (fecha_key),
-# MAGIC   CONSTRAINT chk_fact_resena_stars CHECK (estrellas BETWEEN 1 AND 5)
+# MAGIC   CONSTRAINT fk_fact_resena_fecha FOREIGN KEY (fecha_key) REFERENCES workspace.yelp_gold.dim_fecha (fecha_key)
 # MAGIC ) COMMENT 'Hecho de reseñas. Grano: una fila por reseña publicada.';
 
 # COMMAND ----------
@@ -264,8 +252,7 @@
 # MAGIC   fecha_carga TIMESTAMP COMMENT 'Timestamp de carga del hecho',
 # MAGIC   CONSTRAINT pk_fact_checkin_temporal PRIMARY KEY (business_key, fecha_key, franja_horaria),
 # MAGIC   CONSTRAINT fk_fact_checkin_temporal_business FOREIGN KEY (business_key) REFERENCES workspace.yelp_gold.dim_negocio (business_key),
-# MAGIC   CONSTRAINT fk_fact_checkin_temporal_fecha FOREIGN KEY (fecha_key) REFERENCES workspace.yelp_gold.dim_fecha (fecha_key),
-# MAGIC   CONSTRAINT chk_fact_checkin_temporal_nonnegative CHECK (cantidad_checkins >= 0)
+# MAGIC   CONSTRAINT fk_fact_checkin_temporal_fecha FOREIGN KEY (fecha_key) REFERENCES workspace.yelp_gold.dim_fecha (fecha_key)
 # MAGIC ) COMMENT 'Hecho temporal agregado. Grano: negocio + fecha + franja. Conserva la cantidad de check-ins.';
 
 # COMMAND ----------
@@ -281,8 +268,7 @@
 # MAGIC   fecha_carga TIMESTAMP COMMENT 'Timestamp de carga del producto',
 # MAGIC   CONSTRAINT pk_gld_actividad_temporal PRIMARY KEY (business_key, fecha_key, franja_horaria),
 # MAGIC   CONSTRAINT fk_gld_actividad_business FOREIGN KEY (business_key) REFERENCES workspace.yelp_gold.dim_negocio (business_key),
-# MAGIC   CONSTRAINT fk_gld_actividad_fecha FOREIGN KEY (fecha_key) REFERENCES workspace.yelp_gold.dim_fecha (fecha_key),
-# MAGIC   CONSTRAINT chk_gld_actividad_nonnegative CHECK (cantidad_checkins >= 0)
+# MAGIC   CONSTRAINT fk_gld_actividad_fecha FOREIGN KEY (fecha_key) REFERENCES workspace.yelp_gold.dim_fecha (fecha_key)
 # MAGIC ) COMMENT 'Producto Gold temporal para Power BI. Grano: negocio + fecha + franja horaria.';
 
 # COMMAND ----------
@@ -339,10 +325,7 @@
 # MAGIC   fecha_carga TIMESTAMP COMMENT 'Timestamp de carga del producto Gold',
 # MAGIC   CONSTRAINT pk_gld_dashboard_negocio_mensual PRIMARY KEY (business_key, anio_mes, benchmark_level),
 # MAGIC   CONSTRAINT fk_gld_dashboard_business FOREIGN KEY (business_key) REFERENCES workspace.yelp_gold.dim_negocio (business_key),
-# MAGIC   CONSTRAINT fk_gld_dashboard_categoria FOREIGN KEY (categoria_key) REFERENCES workspace.yelp_gold.dim_categoria (categoria_key),
-# MAGIC   CONSTRAINT chk_gld_dashboard_rating CHECK (rating_mes IS NULL OR rating_mes BETWEEN 1.0 AND 5.0),
-# MAGIC   CONSTRAINT chk_gld_dashboard_benchmark CHECK (benchmark_n_business IS NULL OR benchmark_n_business >= 10),
-# MAGIC   CONSTRAINT chk_gld_dashboard_pct CHECK ((pct_positivas IS NULL OR pct_positivas BETWEEN 0 AND 100) AND (pct_neutrales IS NULL OR pct_neutrales BETWEEN 0 AND 100) AND (pct_negativas IS NULL OR pct_negativas BETWEEN 0 AND 100))
+# MAGIC   CONSTRAINT fk_gld_dashboard_categoria FOREIGN KEY (categoria_key) REFERENCES workspace.yelp_gold.dim_categoria (categoria_key)
 # MAGIC ) COMMENT 'Mart Gold mensual que concentra KPIs, benchmarks, ventanas y elegibilidad para Power BI.';
 
 # COMMAND ----------
@@ -373,5 +356,5 @@ print("✔ Modelo físico validado: Silver y Gold creados; todas las columnas do
 # MAGIC - [x] Gold dimensional con dimensiones, bridge, hechos y actividad temporal agregada.
 # MAGIC - [x] Mart mensual Gold alineado con el sustento EDA, el prototipo HTML y Power BI.
 # MAGIC - [x] 100 % de columnas con `COMMENT`.
-# MAGIC - [x] PK/FK informativas y `CHECK` donde aplica.
+# MAGIC - [x] PK/FK informativas; las reglas de rango se controlan en calidad de datos y transformaciones.
 # MAGIC - [ ] Captura del diagrama ER y lineage en Catalog Explorer.
