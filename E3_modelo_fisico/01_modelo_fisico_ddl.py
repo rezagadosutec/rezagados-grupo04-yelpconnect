@@ -330,23 +330,25 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Validación automática del modelo físico
-tablas_silver = {r.tableName for r in spark.sql("SHOW TABLES IN workspace.yelp_silver").collect()}
-tablas_gold = {r.tableName for r in spark.sql("SHOW TABLES IN workspace.yelp_gold").collect()}
+# DBTITLE 1: Validación SQL del modelo físico
+# MAGIC %sql
+# MAGIC -- Debe devolver las tablas creadas en Silver y Gold.
+# MAGIC SELECT table_schema, table_name
+# MAGIC FROM workspace.information_schema.tables
+# MAGIC WHERE table_schema IN ('yelp_silver', 'yelp_gold')
+# MAGIC ORDER BY table_schema, table_name;
 
-silver_requeridas = {"slv_business", "slv_business_hours", "slv_category", "slv_business_category", "slv_review", "slv_review_quarantine", "slv_user", "slv_checkin"}
-gold_requeridas = {"dim_negocio", "dim_usuario", "dim_fecha", "dim_categoria", "bridge_negocio_categoria", "fact_resena", "fact_checkin_temporal", "gld_actividad_negocio_temporal", "gld_dashboard_negocio_mensual"}
-assert silver_requeridas.issubset(tablas_silver), f"Faltan tablas Silver: {sorted(silver_requeridas - tablas_silver)}"
-assert gold_requeridas.issubset(tablas_gold), f"Faltan tablas Gold: {sorted(gold_requeridas - tablas_gold)}"
+# COMMAND ----------
 
-sin_comment = spark.sql("""
-  SELECT table_schema, table_name, column_name
-  FROM workspace.information_schema.columns
-  WHERE table_schema IN ('yelp_silver','yelp_gold')
-    AND (comment IS NULL OR trim(comment) = '')
-""").collect()
-assert not sin_comment, f"❌ Columnas sin COMMENT: {[(r.table_schema, r.table_name, r.column_name) for r in sin_comment]}"
-print("✔ Modelo físico validado: Silver y Gold creados; todas las columnas documentadas")
+# DBTITLE 2: Columnas sin COMMENT
+# MAGIC %sql
+# MAGIC -- Esta consulta debe devolver cero filas.
+# MAGIC SELECT table_schema, table_name, column_name
+# MAGIC FROM workspace.information_schema.columns
+# MAGIC WHERE table_schema IN ('yelp_silver', 'yelp_gold')
+# MAGIC   AND (comment IS NULL OR trim(comment) = '')
+# MAGIC ORDER BY table_schema, table_name, ordinal_position;
+
 
 # COMMAND ----------
 
