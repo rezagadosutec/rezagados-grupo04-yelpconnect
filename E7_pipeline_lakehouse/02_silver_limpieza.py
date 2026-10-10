@@ -105,7 +105,7 @@ usuarios = (brz_user.filter(F.col("user_id").isNotNull())
     .filter(F.col("_rn") == 1)
     .select(
         "user_id", normalizar_texto("name").alias("nombre"),
-        F.to_date("yelping_since", "yyyy-MM-dd").alias("fecha_alta"),
+        F.to_timestamp("yelping_since").cast("date").alias("fecha_alta"),
         F.col("review_count").cast("int").alias("n_resenas"),
         F.col("useful").cast("int").alias("votos_utiles"),
         F.col("funny").cast("int").alias("votos_divertidos"),
