@@ -128,7 +128,7 @@ reviews_raw = (brz_review
     .withColumn("review_id", F.trim("review_id"))
     .withColumn("user_id", F.trim("user_id"))
     .withColumn("business_id", F.trim("business_id"))
-    .withColumn("estrellas", F.col("stars").cast("int"))
+    .withColumn("estrellas", F.col("stars").cast("double").cast("int"))
     .withColumn("fecha_resena", F.to_timestamp("date"))
     .withColumn("texto", F.trim("text"))
     .withColumn("votos_utiles", F.col("useful").cast("int"))
