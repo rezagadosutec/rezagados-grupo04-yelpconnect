@@ -330,25 +330,35 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Validación SQL del modelo físico
+# DBTITLE 1: Constraints CHECK — se agregan después de crear las tablas
 # MAGIC %sql
-# MAGIC -- Debe devolver las tablas creadas en Silver y Gold.
-# MAGIC SELECT table_schema, table_name
-# MAGIC FROM workspace.information_schema.tables
-# MAGIC WHERE table_schema IN ('yelp_silver', 'yelp_gold')
-# MAGIC ORDER BY table_schema, table_name;
+# MAGIC ALTER TABLE workspace.yelp_silver.slv_business ADD CONSTRAINT chk_slv_business_stars CHECK (estrellas BETWEEN 1.0 AND 5.0);
+# MAGIC ALTER TABLE workspace.yelp_silver.slv_business ADD CONSTRAINT chk_slv_business_lat CHECK (latitud IS NULL OR latitud BETWEEN -90 AND 90);
+# MAGIC ALTER TABLE workspace.yelp_silver.slv_business ADD CONSTRAINT chk_slv_business_lon CHECK (longitud IS NULL OR longitud BETWEEN -180 AND 180);
+# MAGIC ALTER TABLE workspace.yelp_silver.slv_user ADD CONSTRAINT chk_slv_user_stars CHECK (estrellas_promedio IS NULL OR estrellas_promedio BETWEEN 1.0 AND 5.0);
+# MAGIC ALTER TABLE workspace.yelp_silver.slv_review ADD CONSTRAINT chk_slv_review_stars CHECK (estrellas BETWEEN 1 AND 5);
+# MAGIC ALTER TABLE workspace.yelp_silver.slv_checkin ADD CONSTRAINT chk_slv_checkin_hour CHECK (hora IS NULL OR hora BETWEEN 0 AND 23);
+# MAGIC ALTER TABLE workspace.yelp_gold.fact_resena ADD CONSTRAINT chk_fact_resena_stars CHECK (estrellas BETWEEN 1 AND 5);
+# MAGIC ALTER TABLE workspace.yelp_gold.fact_checkin_temporal ADD CONSTRAINT chk_fact_checkin_temporal_nonnegative CHECK (cantidad_checkins >= 0);
+# MAGIC ALTER TABLE workspace.yelp_gold.gld_actividad_negocio_temporal ADD CONSTRAINT chk_gld_actividad_nonnegative CHECK (cantidad_checkins >= 0);
+# MAGIC ALTER TABLE workspace.yelp_gold.gld_dashboard_negocio_mensual ADD CONSTRAINT chk_gld_dashboard_rating CHECK (rating_mes IS NULL OR rating_mes BETWEEN 1.0 AND 5.0);
+# MAGIC ALTER TABLE workspace.yelp_gold.gld_dashboard_negocio_mensual ADD CONSTRAINT chk_gld_dashboard_benchmark CHECK (benchmark_n_business IS NULL OR benchmark_n_business >= 10);
+# MAGIC ALTER TABLE workspace.yelp_gold.gld_dashboard_negocio_mensual ADD CONSTRAINT chk_gld_dashboard_pct CHECK ((pct_positivas IS NULL OR pct_positivas BETWEEN 0 AND 100) AND (pct_neutrales IS NULL OR pct_neutrales BETWEEN 0 AND 100) AND (pct_negativas IS NULL OR pct_negativas BETWEEN 0 AND 100));
 
 # COMMAND ----------
 
-# DBTITLE 2: Columnas sin COMMENT
-# MAGIC %sql
-# MAGIC -- Esta consulta debe devolver cero filas.
-# MAGIC SELECT table_schema, table_name, column_name
-# MAGIC FROM workspace.information_schema.columns
-# MAGIC WHERE table_schema IN ('yelp_silver', 'yelp_gold')
-# MAGIC   AND (comment IS NULL OR trim(comment) = '')
-# MAGIC ORDER BY table_schema, table_name, ordinal_position;
+# DBTITLE 2: Validación automática del entregable (correr antes del PR)
+tablas = spark.sql("SHOW TABLES IN workspace.yelp_silver").collect()
+assert len(tablas) >= 5, "Deben existir al menos las 5 entidades en silver"
 
+sin_comment = spark.sql("""
+  SELECT table_name, column_name
+  FROM workspace.information_schema.columns
+  WHERE table_schema IN ('yelp_silver','yelp_gold')
+    AND (comment IS NULL OR comment = '')
+""").collect()
+assert not sin_comment, f"❌ Columnas sin COMMENT (rompe E4): {[(r.table_name, r.column_name) for r in sin_comment]}"
+print("✔ Modelo físico validado: todas las columnas documentadas")
 
 # COMMAND ----------
 
@@ -358,5 +368,5 @@
 # MAGIC - [x] Gold dimensional con dimensiones, bridge, hechos y actividad temporal agregada.
 # MAGIC - [x] Mart mensual Gold alineado con el sustento EDA, el prototipo HTML y Power BI.
 # MAGIC - [x] 100 % de columnas con `COMMENT`.
-# MAGIC - [x] PK/FK informativas; las reglas de rango se controlan en calidad de datos y transformaciones.
+# MAGIC - [x] PK/FK informativas y `CHECK` agregados mediante `ALTER TABLE`.
 # MAGIC - [ ] Captura del diagrama ER y lineage en Catalog Explorer.
