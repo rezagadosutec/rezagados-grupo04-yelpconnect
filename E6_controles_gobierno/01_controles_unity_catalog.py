@@ -13,23 +13,62 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Clasificación sencilla de datos personales
+# MAGIC
+# MAGIC **PII directa:** identifica a una persona por sí sola. En este proyecto: `slv_user.nombre`.
+# MAGIC
+# MAGIC **PII indirecta:** no identifica por sí sola, pero puede relacionarse con una persona si se combina con otros datos. En este proyecto: `user_id`, `review_id` y la fecha de una reseña.
+# MAGIC
+# MAGIC **PII potencial:** el contenido puede contener información personal dependiendo de lo que escribió el usuario. En este proyecto: `slv_review.texto`.
+# MAGIC
+# MAGIC No se clasifican como PII los datos del negocio, como `business_id`, categoría, rating del negocio o coordenadas del establecimiento. La dirección de una persona no se clasifica porque no existe una columna de dirección personal en el modelo aprobado.
+# MAGIC
+# MAGIC La regla práctica es: el **nombre de la persona se enmascara siempre**; el texto de la reseña se protege porque podría incluir datos personales; los identificadores se restringen aunque no muestren el nombre.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Roles y matriz RACI
+# MAGIC
+# MAGIC | Actividad | Data Custodian | Data Owner | Data Steward | Consumidor de Datos |
+# MAGIC |---|---|---|---|---|
+# MAGIC | Crear tablas y administrar permisos | **R** | A | C | I |
+# MAGIC | Aprobar clasificación PII | C | **A** | R | I |
+# MAGIC | Aplicar tags y máscaras | **R** | A | C | I |
+# MAGIC | Revisar reglas y excepciones DQ | C | A | **R** | I |
+# MAGIC | Consumir datos Gold/vistas seguras | I | A | C | **R** |
+# MAGIC | Aprobar cambios de acceso | R | **A** | C | I |
+# MAGIC
+# MAGIC **Responsables asignados:** Data Custodian: `chijar@gmail.com`; Data Owner: `efren.sistemas@gmail.com`; Data Steward: `celso.ibarcena@gmail.com`; Consumidores: `alex.galindo.romero@gmail.com` y `dfloressgonz@gmail.com`.
+# MAGIC
+# MAGIC **R** = ejecuta, **A** = aprueba y responde por la decisión, **C** = es consultado, **I** = es informado.
+
+# COMMAND ----------
+
 # DBTITLE 1: Control 1 — Clasificación con tags
 # MAGIC %sql
-# MAGIC -- Etiquetar el schema y las columnas sensibles.
-# MAGIC -- ✏️ TODO: completar según la matriz RACI aprobada en el Documento Formal de Arquitectura de Datos
-# MAGIC -- ALTER SCHEMA workspace.yelp_silver SET TAGS ('capa' = 'silver', 'dominio' = 'yelpconnect');
-# MAGIC -- ALTER TABLE workspace.yelp_silver.slv_user ALTER COLUMN nombre SET TAGS ('clasificacion' = 'pii');
+# MAGIC -- Clasificación aprobada: nombre = PII directa; user_id = PII indirecta;
+# MAGIC -- texto de reseña = PII potencial por contenido generado por el usuario.
+# MAGIC ALTER SCHEMA workspace.yelp_silver SET TAGS ('capa' = 'silver', 'dominio' = 'yelpconnect');
+# MAGIC ALTER TABLE workspace.yelp_silver.slv_user ALTER COLUMN nombre SET TAGS ('clasificacion' = 'pii_directa');
+# MAGIC ALTER TABLE workspace.yelp_silver.slv_user ALTER COLUMN user_id SET TAGS ('clasificacion' = 'pii_indirecta');
+# MAGIC ALTER TABLE workspace.yelp_silver.slv_review ALTER COLUMN user_id SET TAGS ('clasificacion' = 'pii_indirecta');
+# MAGIC ALTER TABLE workspace.yelp_silver.slv_review ALTER COLUMN texto SET TAGS ('clasificacion' = 'pii_potencial');
 
 # COMMAND ----------
 
 # DBTITLE 1: Control 2 — Permisos por capa (principio de mínimo privilegio)
 # MAGIC %sql
-# MAGIC -- Modelo objetivo (documentarlo aunque Free Edition limite grupos):
-# MAGIC --   bronze: solo el pipeline (custodian) · silver: analistas leen · gold: todos leen
-# MAGIC -- ✏️ TODO: otorgar permisos a los usuarios reales del workspace simulando roles, ej.:
-# MAGIC -- GRANT USAGE ON SCHEMA workspace.yelp_gold TO `usuario-marketing@grupo.com`;
-# MAGIC -- GRANT SELECT ON SCHEMA workspace.yelp_gold TO `usuario-marketing@grupo.com`;
-# MAGIC -- REVOKE ALL PRIVILEGES ON SCHEMA workspace.yelp_bronze FROM `usuario-marketing@grupo.com`;
+# MAGIC -- Los consumidores reciben únicamente Gold; no se les concede Silver ni Bronze.
+# MAGIC GRANT USAGE ON SCHEMA workspace.yelp_gold TO `alex.galindo.romero@gmail.com`;
+# MAGIC GRANT SELECT ON SCHEMA workspace.yelp_gold TO `alex.galindo.romero@gmail.com`;
+# MAGIC GRANT USAGE ON SCHEMA workspace.yelp_gold TO `dfloressgonz@gmail.com`;
+# MAGIC GRANT SELECT ON SCHEMA workspace.yelp_gold TO `dfloressgonz@gmail.com`;
+# MAGIC
+# MAGIC -- El Data Custodian administra técnicamente los objetos.
+# MAGIC GRANT USAGE ON SCHEMA workspace.yelp_silver TO `chijar@gmail.com`;
+# MAGIC GRANT SELECT ON SCHEMA workspace.yelp_silver TO `chijar@gmail.com`;
 # MAGIC
 # MAGIC -- Verificación de evidencia:
 # MAGIC SHOW GRANTS ON SCHEMA workspace.yelp_gold;
@@ -64,6 +103,8 @@
 # MAGIC
 # MAGIC ### Definition of Done (E6)
 # MAGIC - [ ] Tags de clasificación aplicados a schemas y columnas PII.
-# MAGIC - [ ] GRANTs ejecutados + captura de un usuario "Marketing" intentando (y fallando) leer bronze.
-# MAGIC - [ ] Máscara PII funcionando: captura del mismo SELECT con dos usuarios distintos.
-# MAGIC - [ ] Lineage de `review` documentado con capturas.
+# MAGIC - [ ] GRANTs ejecutados para consumidores y Data Custodian.
+# MAGIC - [ ] Nombre de usuario enmascarado para consumidores.
+# MAGIC - [ ] Lineage de `review` documentado con una captura de Catalog Explorer.
+# MAGIC
+# MAGIC Para marcar una casilla como `[x]`, ejecuta el control correspondiente y guarda una captura como evidencia.

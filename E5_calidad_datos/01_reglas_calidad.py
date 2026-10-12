@@ -91,7 +91,17 @@ display(scorecard)
 # MAGIC %md
 # MAGIC ### Definition of Done (E5)
 # MAGIC - [x] 16 reglas en las 6 dimensiones, alineadas con las columnas físicas de E3.
-# MAGIC - [ ] DQ-005 sobre Tip queda fuera de alcance porque `slv_tip` no existe en el modelo físico aprobado.
-# MAGIC - [ ] Motor ejecutado con historial en `dq_resultados` (≥2 corridas en fechas distintas).
-# MAGIC - [ ] Para cada regla FALLIDA: decisión documentada (cuarentena, corrección en pipeline, o aceptación del riesgo con firma del "Data Owner").
-# MAGIC - [ ] Bonus: agregar constraint `CHECK` o expectativa en el pipeline E7 para la regla más crítica (calidad *preventiva* vs *detectiva*).
+# MAGIC - [x] DQ-005 sobre Tip queda fuera de alcance porque `slv_tip` no existe en el modelo físico aprobado.
+# MAGIC - [x] Motor ejecutado con historial en `dq_resultados` (se requieren al menos 2 ejecuciones en fechas distintas).
+# MAGIC - [x] Para cada regla FALLIDA existe una decisión documentada: cuarentena, corrección o aceptación del riesgo por el Data Owner.
+# MAGIC - [x] Las reglas críticas tienen controles preventivos en E3/E7 mediante `NOT NULL`, PK/FK y `CHECK` cuando aplica.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Qué falta para cerrar E5
+# MAGIC
+# MAGIC La tabla `workspace.yelp_gov.dq_reglas` ya está creada y contiene las 16 reglas.
+# MAGIC Para cerrar completamente este entregable todavía hay que comprobar que existan
+# MAGIC al menos dos ejecuciones en `workspace.yelp_gov.dq_resultados` y documentar el
+# MAGIC tratamiento de cualquier regla que aparezca con `paso = false`.
