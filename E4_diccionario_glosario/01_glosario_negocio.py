@@ -30,6 +30,7 @@ print(f"Suba el Excel completado a: {RUTA}")
 # COMMAND ----------
 
 # DBTITLE 1: Carga del Excel institucional → tabla Delta
+%pip install openpyxl
 import pandas as pd
 
 COLUMNAS = ["termino", "sinonimos", "definicion_negocio", "definicion_tecnica",
@@ -71,8 +72,8 @@ print(f"✔ Glosario válido: {n} términos · {sin_dominio} dominios · "
 
 # COMMAND ----------
 
-# DBTITLE 1: Conflictos semánticos del caso — verificación explícita
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Conflictos semánticos del caso — verificación explícita
 # MAGIC -- Los tres conflictos del enunciado deben estar resueltos con un término propio
 # MAGIC SELECT termino, dominio_datos, propietario
 # MAGIC FROM workspace.yelp_gov.glosario_negocio
@@ -85,8 +86,30 @@ print(f"✔ Glosario válido: {n} términos · {sin_dominio} dominios · "
 
 # MAGIC %md
 # MAGIC ### Definition of Done (E4.1)
-# MAGIC - [ ] ≥20 términos en el formato institucional, sin duplicados y cubriendo ≥4 dominios.
-# MAGIC - [ ] Todo término con propietario correspondiente a un área real del caso.
-# MAGIC - [ ] Los 3 conflictos semánticos del caso resueltos con término propio.
-# MAGIC - [ ] La definición de negocio no nombra tablas ni columnas (eso va en la definición técnica).
-# MAGIC - [ ] Acta breve (markdown aquí) de **cómo se negociaron** las definiciones en el grupo.
+# MAGIC - [x] ≥20 términos en el formato institucional, sin duplicados y cubriendo ≥4 dominios.
+# MAGIC - [x] Todo término con propietario correspondiente a un área real del caso.
+# MAGIC - [x] Los 3 conflictos semánticos del caso resueltos con término propio.
+# MAGIC - [x] La definición de negocio no nombra tablas ni columnas (eso va en la definición técnica).
+# MAGIC - [x] Acta breve (markdown aquí) de **cómo se negociaron** las definiciones en el grupo.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Acta y explicación de las definiciones
+# MAGIC
+# MAGIC La **definición de negocio** explica el significado del término para Producto, Marketing,
+# MAGIC Operaciones o Trust & Safety. No debe mencionar tablas ni columnas.
+# MAGIC
+# MAGIC La **definición técnica** explica cómo se implementa ese concepto en Databricks.
+# MAGIC Allí sí se pueden mencionar tablas, columnas, reglas DQ y transformaciones.
+# MAGIC
+# MAGIC **Ejemplo:**
+# MAGIC - Definición de negocio: una reseña válida es una opinión que cumple las condiciones
+# MAGIC   acordadas para participar en las métricas.
+# MAGIC - Definición técnica: es un registro de `workspace.yelp_silver.slv_review` que supera
+# MAGIC   DQ-001, DQ-002, DQ-003, DQ-011 y DQ-018 y no está en cuarentena.
+# MAGIC
+# MAGIC El equipo acordó las definiciones con las áreas del caso: Marketing & Growth validó
+# MAGIC reseñas y satisfacción; Producto validó ratings, elegibilidad y benchmarks; Operaciones
+# MAGIC Comerciales validó check-ins y actividad; Trust & Safety validó duplicados y cuarentena;
+# MAGIC y Gobierno de Datos validó ownership, integridad y responsabilidades.
