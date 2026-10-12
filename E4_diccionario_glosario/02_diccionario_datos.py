@@ -47,6 +47,7 @@ display(borrador)
 # COMMAND ----------
 
 # DBTITLE 1: Paso 2 — Carga del Excel institucional completado → tabla Delta
+%pip install openpyxl
 import pandas as pd
 
 RUTA = "/Volumes/workspace/yelp_gov/artefactos/Diccionario_de_Datos_YelpConnect.xlsx"
@@ -147,10 +148,20 @@ print("Tags de clasificación aplicados ✔ (insumo directo de E6)")
 
 # MAGIC %md
 # MAGIC ### Definition of Done (E4.2)
-# MAGIC - [ ] 100 % de las columnas de `yelp_silver` y `yelp_gold` presentes en el diccionario.
-# MAGIC - [ ] Todo elemento con responsable, clasificación de sensibilidad y política de retención.
-# MAGIC - [ ] Toda regla citada como `DQ-nnn` existe en `yelp_gov.dq_reglas` (sin huérfanas).
-# MAGIC - [ ] Los `nombre_fisico` coinciden exactamente con Unity Catalog (validador 1 en 100 %).
-# MAGIC - [ ] Tags de clasificación aplicados y visibles en el catálogo.
-# MAGIC - [ ] Hoja "Diccionario resumido" coherente con la hoja completa (es la de la sustentación).
-# MAGIC - [ ] Párrafo de reflexión: ¿qué se hereda del catálogo y qué debe negociarse con el negocio?
+# MAGIC - [x] 100 % de las columnas de `yelp_silver` y `yelp_gold` presentes en el diccionario.
+# MAGIC - [x] Todo elemento con responsable, clasificación de sensibilidad y política de retención.
+# MAGIC - [x] Toda regla citada como `DQ-nnn` existe en `yelp_gov.dq_reglas` (sin huérfanas).
+# MAGIC - [x] Los `nombre_fisico` coinciden exactamente con Unity Catalog (validador 1 en 100 %).
+# MAGIC - [x] Tags de clasificación aplicados y visibles en el catálogo.
+# MAGIC - [x] Hoja "Diccionario resumido" coherente con la hoja completa (es la de la sustentación).
+# MAGIC - [x] Párrafo de reflexión: la metadata técnica se hereda del catálogo; significado, owner, sensibilidad, retención y uso se acuerdan con el negocio.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Reflexión final
+# MAGIC
+# MAGIC La metadata técnica, como nombre físico, tipo de dato, nulabilidad y comentarios,
+# MAGIC se hereda de Unity Catalog y del modelo físico de E3. La metadata de negocio,
+# MAGIC como significado, dominio, responsable, sensibilidad, retención y uso, debe ser
+# MAGIC acordada con las áreas responsables.
