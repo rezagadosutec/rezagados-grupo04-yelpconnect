@@ -46,8 +46,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Control 1 — Clasificación con tags
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Control 1 — Clasificación con tags
 # MAGIC -- Clasificación aprobada: nombre = PII directa; user_id = PII indirecta;
 # MAGIC -- texto de reseña = PII potencial por contenido generado por el usuario.
 # MAGIC ALTER SCHEMA workspace.yelp_silver SET TAGS ('capa' = 'silver', 'dominio' = 'yelpconnect');
@@ -58,16 +58,19 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Control 2 — Permisos por capa (principio de mínimo privilegio)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Control 2 — Permisos por capa (principio de mínimo privilegio)
 # MAGIC -- Los consumidores reciben únicamente Gold; no se les concede Silver ni Bronze.
-# MAGIC GRANT USAGE ON SCHEMA workspace.yelp_gold TO `alex.galindo.romero@gmail.com`;
+# MAGIC GRANT USE CATALOG ON CATALOG workspace TO `alex.galindo.romero@gmail.com`;
+# MAGIC GRANT USE SCHEMA ON SCHEMA workspace.yelp_gold TO `alex.galindo.romero@gmail.com`;
 # MAGIC GRANT SELECT ON SCHEMA workspace.yelp_gold TO `alex.galindo.romero@gmail.com`;
-# MAGIC GRANT USAGE ON SCHEMA workspace.yelp_gold TO `dfloressgonz@gmail.com`;
+# MAGIC GRANT USE CATALOG ON CATALOG workspace TO `dfloressgonz@gmail.com`;
+# MAGIC GRANT USE SCHEMA ON SCHEMA workspace.yelp_gold TO `dfloressgonz@gmail.com`;
 # MAGIC GRANT SELECT ON SCHEMA workspace.yelp_gold TO `dfloressgonz@gmail.com`;
 # MAGIC
 # MAGIC -- El Data Custodian administra técnicamente los objetos.
-# MAGIC GRANT USAGE ON SCHEMA workspace.yelp_silver TO `chijar@gmail.com`;
+# MAGIC GRANT USE CATALOG ON CATALOG workspace TO `chijar@gmail.com`;
+# MAGIC GRANT USE SCHEMA ON SCHEMA workspace.yelp_silver TO `chijar@gmail.com`;
 # MAGIC GRANT SELECT ON SCHEMA workspace.yelp_silver TO `chijar@gmail.com`;
 # MAGIC
 # MAGIC -- Verificación de evidencia:
@@ -75,8 +78,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Control 3 — Enmascaramiento de PII
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Control 3 — Enmascaramiento de PII
 # MAGIC -- Opción A (recomendada): función de máscara + column mask
 # MAGIC CREATE OR REPLACE FUNCTION workspace.yelp_gov.mascara_nombre(nombre STRING)
 # MAGIC RETURNS STRING
@@ -97,14 +100,22 @@
 
 # MAGIC %md
 # MAGIC ## Control 4 — Evidencia de lineage y auditoría
-# MAGIC > ✏️ TODO — Insertar en `img/` capturas del lineage end-to-end de Catalog Explorer
-# MAGIC > (raw → bronze → silver → gold → dashboard) para la entidad `review`, respondiendo
-# MAGIC > directamente al dolor de Trust & Safety: "reglas de fraude sin linaje claro".
+# MAGIC
+# MAGIC Las siguientes imágenes documentan la evidencia visual del lineage de la entidad
+# MAGIC `review` y sus dependencias dentro del flujo Bronze → Silver → Gold.
+# MAGIC
+# MAGIC **Lineage general del modelo:**
+# MAGIC
+# MAGIC ![Lineage general de YelpConnect](img/linage.png)
+# MAGIC
+# MAGIC **Detalle del lineage y dependencias:**
+# MAGIC
+# MAGIC ![Detalle del lineage de YelpConnect](img/linage_2.png)
 # MAGIC
 # MAGIC ### Definition of Done (E6)
-# MAGIC - [ ] Tags de clasificación aplicados a schemas y columnas PII.
-# MAGIC - [ ] GRANTs ejecutados para consumidores y Data Custodian.
-# MAGIC - [ ] Nombre de usuario enmascarado para consumidores.
-# MAGIC - [ ] Lineage de `review` documentado con una captura de Catalog Explorer.
+# MAGIC - [x] Tags de clasificación aplicados a schemas y columnas PII.
+# MAGIC - [x] GRANTs ejecutados para consumidores y Data Custodian.
+# MAGIC - [x] Nombre de usuario enmascarado para consumidores.
+# MAGIC - [x] Lineage de `review` documentado con una captura de Catalog Explorer.
 # MAGIC
 # MAGIC Para marcar una casilla como `[x]`, ejecuta el control correspondiente y guarda una captura como evidencia.
