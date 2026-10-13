@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # E6 · Controles técnicos de gobierno en Unity Catalog
 # MAGIC **Cierra con:** M2 (diseño) + M5 (implementación en plataforma)
