@@ -87,7 +87,7 @@ cargar("bridge_negocio_categoria", bridge_gold)
 
 fact_resena = (reviews
     .join(dim_negocio.select("business_key", "business_id"), "business_id")
-    .join(dim_usuario.select("user_key", "user_id"), "user_id")
+    .join(spark.table(f"{G}.dim_usuario").select("user_key", "user_id"), "user_id")
     .withColumn("review_key", clave("review_id"))
     .withColumn("fecha_key", F.date_format("fecha_resena", "yyyyMMdd").cast("int"))
     .withColumn("fecha_carga", F.current_timestamp())
@@ -170,8 +170,17 @@ print(f"✔ Gold conformado: {len(requeridas)} tablas verificadas")
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ## Evidencia de lineage Silver → Gold
+# MAGIC
+# MAGIC La siguiente imagen documenta el flujo de transformación desde Silver hacia Gold.
+# MAGIC
+# MAGIC ![Lineage Silver a Gold](img/linage.png)
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ### Definition of Done (E7.3)
 # MAGIC - [x] Tablas Gold de E3 cargadas con dimensiones, puentes, hechos y mart mensual.
 # MAGIC - [x] Al menos dos productos responden a preguntas de Producto y Operaciones Comerciales.
 # MAGIC - [x] Tabla stakeholder → producto → pregunta documentada.
-# MAGIC - [ ] Lineage Silver → Gold visible en Catalog Explorer (requiere captura).
+# MAGIC - [x] Lineage Silver → Gold documentado con la imagen disponible en `img/linage.png`.
