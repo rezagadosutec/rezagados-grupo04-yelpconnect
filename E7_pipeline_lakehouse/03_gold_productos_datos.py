@@ -169,6 +169,105 @@ print(f"✔ Gold conformado: {len(requeridas)} tablas verificadas")
 
 # COMMAND ----------
 
+# DBTITLE 5: Corrección final del mart mensual Gold
+# Completa ventanas, YTD, elegibilidad, benchmark y ranking sin modificar Silver.
+MIN_REVIEWS_SAT, MIN_REVIEWS_PEER, MIN_PEERS_BENCHMARK = 10, 10, 10
+target = f"{G}.gld_dashboard_negocio_mensual"
+target_schema = spark.table(target).schema
+target_cols = [f.name for f in target_schema.fields]
+
+gold_business = spark.table(f"{G}.dim_negocio").filter("es_actual = true")
+gold_categories = spark.table(f"{G}.dim_categoria")
+gold_bridge = spark.table(f"{G}.bridge_negocio_categoria")
+gold_reviews = spark.table(f"{G}.fact_resena")
+gold_checkins = spark.table(f"{G}.fact_checkin_temporal")
+gold_dates = spark.table(f"{G}.dim_fecha")
+
+# Métricas mensuales y spine continuo por negocio.
+rm = (gold_reviews.join(gold_dates.select("fecha_key", "anio_mes", "anio"), "fecha_key")
+    .groupBy("business_key", "anio_mes", "anio")
+    .agg(F.count("review_key").cast("long").alias("n_reviews_mes"),
+         F.sum(F.col("estrellas").cast("double")).alias("suma_estrellas_mes"),
+         F.countDistinct("user_key").cast("long").alias("n_reviewers_mes"),
+         F.sum(F.when(F.col("estrellas") >= 4, 1).otherwise(0)).cast("long").alias("reviews_positivas"),
+         F.sum(F.when(F.col("estrellas") == 3, 1).otherwise(0)).cast("long").alias("reviews_neutrales"),
+         F.sum(F.when(F.col("estrellas") <= 2, 1).otherwise(0)).cast("long").alias("reviews_negativas")))
+cm = (gold_checkins.join(gold_dates.select("fecha_key", "anio_mes", "anio"), "fecha_key")
+    .groupBy("business_key", "anio_mes", "anio").agg(F.sum("cantidad_checkins").cast("long").alias("n_checkins_mes")))
+actividad = (rm.select("business_key", "anio_mes").union(cm.select("business_key", "anio_mes")).distinct()
+    .withColumn("mes_fecha", F.to_date(F.concat("anio_mes", F.lit("-01"))))
+    .groupBy("business_key").agg(F.min("mes_fecha").alias("inicio"), F.max("mes_fecha").alias("fin"))
+    .select("business_key", F.explode(F.sequence("inicio", "fin", F.expr("interval 1 month"))).alias("mes_fecha"))
+    .withColumn("anio_mes", F.date_format("mes_fecha", "yyyy-MM"))
+    .withColumn("anio", F.year("mes_fecha")))
+base = (actividad.join(rm.drop("anio"), ["business_key", "anio_mes"], "left")
+    .join(cm.drop("anio"), ["business_key", "anio_mes"], "left")
+    .fillna(0, ["n_reviews_mes", "n_reviewers_mes", "n_checkins_mes", "reviews_positivas", "reviews_neutrales", "reviews_negativas", "suma_estrellas_mes"])
+    .withColumn("rating_mes", F.when(F.col("n_reviews_mes") > 0, F.col("suma_estrellas_mes") / F.col("n_reviews_mes")))
+    .withColumn("pct_positivas", F.when(F.col("n_reviews_mes") > 0, 100 * F.col("reviews_positivas") / F.col("n_reviews_mes")))
+    .withColumn("pct_neutrales", F.when(F.col("n_reviews_mes") > 0, 100 * F.col("reviews_neutrales") / F.col("n_reviews_mes")))
+    .withColumn("pct_negativas", F.when(F.col("n_reviews_mes") > 0, 100 * F.col("reviews_negativas") / F.col("n_reviews_mes"))))
+
+# Ventanas 3m/6m/12m y acumulados YTD.
+orden = Window.partitionBy("business_key").orderBy("mes_fecha")
+ytd = Window.partitionBy("business_key", "anio").orderBy("mes_fecha").rowsBetween(Window.unboundedPreceding, 0)
+for nombre, inicio in [("3m", -2), ("6m", -5), ("12m", -11)]:
+    ventana = orden.rowsBetween(inicio, 0)
+    base = (base.withColumn(f"reviews_{nombre}", F.sum("n_reviews_mes").over(ventana).cast("long"))
+        .withColumn(f"checkins_{nombre}", F.sum("n_checkins_mes").over(ventana).cast("long"))
+        .withColumn(f"stars_{nombre}", F.sum("suma_estrellas_mes").over(ventana)))
+    base = base.withColumn(f"rating_{nombre}", F.when(F.col(f"reviews_{nombre}") > 0, F.col(f"stars_{nombre}") / F.col(f"reviews_{nombre}")))
+base = (base.withColumn("reviews_ytd", F.sum("n_reviews_mes").over(ytd).cast("long"))
+    .withColumn("checkins_ytd", F.sum("n_checkins_mes").over(ytd).cast("long"))
+    .withColumn("eligible_rating", F.col("n_reviews_mes") > 0)
+    .withColumn("eligible_rating_12m", F.col("reviews_12m") >= MIN_REVIEWS_SAT)
+    .withColumn("eligible_checkin", F.col("n_checkins_mes") > 0)
+    .withColumn("umbral_reviews_satisfaccion", F.lit(MIN_REVIEWS_SAT))
+    .withColumn("flag_satisfaccion_valida", F.col("n_reviews_mes") >= MIN_REVIEWS_SAT))
+
+# Benchmark: categoría + postal; fallback a categoría + ciudad.
+cats = (gold_bridge.join(gold_categories.select("categoria_key", "categoria"), "categoria_key")
+    .select("business_key", "categoria_key", "categoria").dropDuplicates())
+cat_window = Window.partitionBy("business_key").orderBy("categoria_key")
+cats = cats.withColumn("_rn", F.row_number().over(cat_window)).filter("_rn = 1").drop("_rn")
+peers = (gold_business.select("business_key", "ciudad", "codigo_postal", "esta_abierto", "has_category", "has_postal_code")
+    .join(gold_reviews.groupBy("business_key").agg(F.count("review_key").alias("reviews_total")), "business_key", "left")
+    .fillna(0, ["reviews_total"])
+    .withColumn("peer_ok", (F.col("esta_abierto") == True) & F.col("has_category") & F.col("has_postal_code") & (F.col("reviews_total") >= MIN_REVIEWS_PEER)))
+monthly = base.join(cats, "business_key", "left").join(peers, "business_key", "left")
+peer_monthly = monthly.filter(F.col("peer_ok"))
+postal = peer_monthly.groupBy("anio_mes", "categoria_key", "codigo_postal").agg(F.countDistinct("business_key").alias("pn"), F.sum("n_reviews_mes").alias("pr"), F.sum("n_checkins_mes").alias("pc"), F.sum("suma_estrellas_mes").alias("ps"))
+city = peer_monthly.groupBy("anio_mes", "categoria_key", "ciudad").agg(F.countDistinct("business_key").alias("cn"), F.sum("n_reviews_mes").alias("cr"), F.sum("n_checkins_mes").alias("cc"), F.sum("suma_estrellas_mes").alias("cs"))
+out = (monthly.join(postal, ["anio_mes", "categoria_key", "codigo_postal"], "left").join(city, ["anio_mes", "categoria_key", "ciudad"], "left")
+    .withColumn("postal_peers", F.greatest(F.coalesce(F.col("pn"), F.lit(0)) - F.when(F.col("peer_ok"), 1).otherwise(0), F.lit(0)))
+    .withColumn("city_peers", F.greatest(F.coalesce(F.col("cn"), F.lit(0)) - F.when(F.col("peer_ok"), 1).otherwise(0), F.lit(0)))
+    .withColumn("usar_postal", F.col("postal_peers") >= MIN_PEERS_BENCHMARK)
+    .withColumn("usar_ciudad", (~F.col("usar_postal")) & (F.col("city_peers") >= MIN_PEERS_BENCHMARK))
+    .withColumn("benchmark_level", F.when(F.col("usar_postal"), 1).otherwise(2).cast("int"))
+    .withColumn("benchmark_type", F.when(F.col("usar_postal"), "CATEGORIA_POSTAL").when(F.col("usar_ciudad"), "CATEGORIA_CIUDAD"))
+    .withColumn("benchmark_categoria", F.col("categoria"))
+    .withColumn("benchmark_postal_code", F.when(F.col("usar_postal"), F.col("codigo_postal")))
+    .withColumn("benchmark_ciudad", F.when(F.col("usar_ciudad"), F.col("ciudad")))
+    .withColumn("benchmark_fallback", F.col("usar_ciudad"))
+    .withColumn("benchmark_n_business", F.when(F.col("usar_postal"), F.col("postal_peers")).when(F.col("usar_ciudad"), F.col("city_peers")))
+    .withColumn("benchmark_reviews", F.when(F.col("usar_postal"), F.col("pr") / F.col("postal_peers")).when(F.col("usar_ciudad"), F.col("cr") / F.col("city_peers")))
+    .withColumn("benchmark_checkins", F.when(F.col("usar_postal"), F.col("pc") / F.col("postal_peers")).when(F.col("usar_ciudad"), F.col("cc") / F.col("city_peers")))
+    .withColumn("benchmark_rating", F.when(F.col("benchmark_reviews") > 0, F.when(F.col("usar_postal"), F.col("ps")).otherwise(F.col("cs")) / F.col("benchmark_reviews")))
+    .withColumn("eligible_benchmark", F.col("usar_postal") | F.col("usar_ciudad")))
+rank = Window.partitionBy("anio_mes", "categoria_key", "codigo_postal").orderBy(F.col("rating_mes").desc_nulls_last(), "business_key")
+out = (out.withColumn("ranking_rating", F.when(F.col("eligible_benchmark"), F.row_number().over(rank)))
+    .withColumn("delta_rating_vs_benchmark", F.col("rating_mes") - F.col("benchmark_rating"))
+    .withColumn("delta_reviews_vs_benchmark", F.col("n_reviews_mes") - F.col("benchmark_reviews"))
+    .withColumn("delta_checkins_vs_benchmark", F.col("n_checkins_mes") - F.col("benchmark_checkins")))
+for field in target_schema.fields:
+    out = out.withColumn(field.name, F.col(field.name).cast(field.dataType) if field.name in out.columns else F.lit(None).cast(field.dataType))
+spark.sql(f"TRUNCATE TABLE {target}")
+out.withColumn("fecha_carga", F.current_timestamp()).select(*target_cols).write.mode("append").insertInto(target)
+assert spark.table(target).count() > 0, "Gold mensual quedó vacío"
+print(f"✔ Corrección Gold aplicada: {spark.table(target).count():,} filas")
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Evidencia de lineage Silver → Gold
 # MAGIC
