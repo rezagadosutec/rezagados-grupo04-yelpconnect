@@ -282,7 +282,7 @@
 # MAGIC   business_key BIGINT NOT NULL COMMENT 'Clave del negocio seleccionado en el dashboard',
 # MAGIC   anio_mes STRING NOT NULL COMMENT 'Periodo de análisis en formato YYYY-MM',
 # MAGIC   categoria_key BIGINT COMMENT 'Categoría usada para formar el grupo comparable',
-# MAGIC   benchmark_level INT NOT NULL COMMENT 'Nivel del benchmark: 1 categoría+postal; 2 categoría+ciudad',
+# MAGIC   benchmark_level INT COMMENT 'Nivel del benchmark: 1 categoría+postal; 2 categoría+ciudad; NULL si no existe benchmark',
 # MAGIC   benchmark_type STRING COMMENT 'Tipo de benchmark: CATEGORY_POSTAL o CATEGORY_CITY',
 # MAGIC   benchmark_categoria STRING COMMENT 'Categoría del grupo comparable',
 # MAGIC   benchmark_postal_code STRING COMMENT 'Código postal del grupo comparable cuando aplica',
@@ -327,7 +327,7 @@
 # MAGIC   umbral_reviews_satisfaccion INT COMMENT 'Mínimo de 10 reseñas requerido para mostrar satisfacción como representativa',
 # MAGIC   flag_satisfaccion_valida BOOLEAN COMMENT 'Indica si existen al menos 10 reseñas y la distribución de satisfacción es válida',
 # MAGIC   fecha_carga TIMESTAMP COMMENT 'Timestamp de carga del producto Gold',
-# MAGIC   CONSTRAINT pk_gld_dashboard_negocio_mensual PRIMARY KEY (business_key, anio_mes, benchmark_level),
+# MAGIC   CONSTRAINT pk_gld_dashboard_negocio_mensual PRIMARY KEY (business_key, anio_mes),
 # MAGIC   CONSTRAINT fk_gld_dashboard_business FOREIGN KEY (business_key) REFERENCES workspace.yelp_gold.dim_negocio (business_key),
 # MAGIC   CONSTRAINT fk_gld_dashboard_categoria FOREIGN KEY (categoria_key) REFERENCES workspace.yelp_gold.dim_categoria (categoria_key)
 # MAGIC ) COMMENT 'Mart Gold mensual que concentra KPIs, benchmarks, ventanas y elegibilidad para Power BI.';
