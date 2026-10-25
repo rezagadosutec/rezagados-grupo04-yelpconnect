@@ -80,14 +80,24 @@ cargar("dim_categoria", categorias_gold)
 # COMMAND ----------
 
 # DBTITLE 2: Puente y hechos
-bridge_gold = (bridge_silver
+# La fuente Silver no trae una categoría principal. Se define una única
+# categoría principal determinista para conservar una fila por negocio en el mart.
+bridge_base = (bridge_silver
+    .select("business_id", "categoria_key", "fecha_carga")
+    .dropDuplicates(["business_id", "categoria_key"]))
+bridge_window = Window.partitionBy("business_id").orderBy("categoria_key")
+bridge_gold = (bridge_base
+    .withColumn("_rn", F.row_number().over(bridge_window))
+    .withColumn("es_categoria_principal", F.col("_rn") == 1)
     .join(dim_negocio.select("business_key", "business_id"), "business_id")
-    .select("business_key", "categoria_key", F.lit(False).alias("es_categoria_principal"), "fecha_carga"))
+    .select("business_key", "categoria_key", "es_categoria_principal", "fecha_carga"))
 cargar("bridge_negocio_categoria", bridge_gold)
 
 fact_resena = (reviews
     .join(dim_negocio.select("business_key", "business_id"), "business_id")
-    .join(spark.table(f"{G}.dim_usuario").select("user_key", "user_id"), "user_id")
+    # Una review sin usuario en Silver no debe desaparecer del hecho.
+    .join(spark.table(f"{G}.dim_usuario").select("user_key", "user_id"), "user_id", "left")
+    .withColumn("user_key", F.coalesce(F.col("user_key"), F.lit(-1).cast("long")))
     .withColumn("review_key", clave("review_id"))
     .withColumn("fecha_key", F.date_format("fecha_resena", "yyyyMMdd").cast("int"))
     .withColumn("fecha_carga", F.current_timestamp())
@@ -226,35 +236,59 @@ base = (base.withColumn("reviews_ytd", F.sum("n_reviews_mes").over(ytd).cast("lo
     .withColumn("flag_satisfaccion_valida", F.col("n_reviews_mes") >= MIN_REVIEWS_SAT))
 
 # Benchmark: categoría + postal; fallback a categoría + ciudad.
+# La tabla puente puede contener varias categorías por negocio. Como el mart
+# tiene una fila por negocio y mes, se aplica una regla determinista: se usa
+# la categoría marcada como principal y, si no existe, la menor categoria_key.
 cats = (gold_bridge.join(gold_categories.select("categoria_key", "categoria"), "categoria_key")
-    .select("business_key", "categoria_key", "categoria").dropDuplicates())
-cat_window = Window.partitionBy("business_key").orderBy("categoria_key")
+    .select("business_key", "categoria_key", "categoria", "es_categoria_principal")
+    .dropDuplicates())
+cat_window = Window.partitionBy("business_key").orderBy(
+    F.col("es_categoria_principal").desc(), F.col("categoria_key"))
 cats = cats.withColumn("_rn", F.row_number().over(cat_window)).filter("_rn = 1").drop("_rn")
+
 peers = (gold_business.select("business_key", "ciudad", "codigo_postal", "esta_abierto", "has_category", "has_postal_code")
     .join(gold_reviews.groupBy("business_key").agg(F.count("review_key").alias("reviews_total")), "business_key", "left")
     .fillna(0, ["reviews_total"])
     .withColumn("peer_ok", (F.col("esta_abierto") == True) & F.col("has_category") & F.col("has_postal_code") & (F.col("reviews_total") >= MIN_REVIEWS_PEER)))
 monthly = base.join(cats, "business_key", "left").join(peers, "business_key", "left")
 peer_monthly = monthly.filter(F.col("peer_ok"))
-postal = peer_monthly.groupBy("anio_mes", "categoria_key", "codigo_postal").agg(F.countDistinct("business_key").alias("pn"), F.sum("n_reviews_mes").alias("pr"), F.sum("n_checkins_mes").alias("pc"), F.sum("suma_estrellas_mes").alias("ps"))
-city = peer_monthly.groupBy("anio_mes", "categoria_key", "ciudad").agg(F.countDistinct("business_key").alias("cn"), F.sum("n_reviews_mes").alias("cr"), F.sum("n_checkins_mes").alias("cc"), F.sum("suma_estrellas_mes").alias("cs"))
-out = (monthly.join(postal, ["anio_mes", "categoria_key", "codigo_postal"], "left").join(city, ["anio_mes", "categoria_key", "ciudad"], "left")
+postal = peer_monthly.groupBy("anio_mes", "categoria_key", "codigo_postal").agg(
+    F.countDistinct("business_key").alias("pn"),
+    F.sum("n_reviews_mes").alias("pr"),
+    F.sum("n_checkins_mes").alias("pc"),
+    F.sum("suma_estrellas_mes").alias("ps"))
+city = peer_monthly.groupBy("anio_mes", "categoria_key", "ciudad").agg(
+    F.countDistinct("business_key").alias("cn"),
+    F.sum("n_reviews_mes").alias("cr"),
+    F.sum("n_checkins_mes").alias("cc"),
+    F.sum("suma_estrellas_mes").alias("cs"))
+out = (monthly.join(postal, ["anio_mes", "categoria_key", "codigo_postal"], "left")
+    .join(city, ["anio_mes", "categoria_key", "ciudad"], "left")
     .withColumn("postal_peers", F.greatest(F.coalesce(F.col("pn"), F.lit(0)) - F.when(F.col("peer_ok"), 1).otherwise(0), F.lit(0)))
     .withColumn("city_peers", F.greatest(F.coalesce(F.col("cn"), F.lit(0)) - F.when(F.col("peer_ok"), 1).otherwise(0), F.lit(0)))
     .withColumn("usar_postal", F.col("postal_peers") >= MIN_PEERS_BENCHMARK)
     .withColumn("usar_ciudad", (~F.col("usar_postal")) & (F.col("city_peers") >= MIN_PEERS_BENCHMARK))
-    .withColumn("benchmark_level", F.when(F.col("usar_postal"), 1).otherwise(2).cast("int"))
+    .withColumn("benchmark_level", F.when(F.col("usar_postal"), 1).when(F.col("usar_ciudad"), 2).cast("int"))
     .withColumn("benchmark_type", F.when(F.col("usar_postal"), "CATEGORIA_POSTAL").when(F.col("usar_ciudad"), "CATEGORIA_CIUDAD"))
     .withColumn("benchmark_categoria", F.col("categoria"))
     .withColumn("benchmark_postal_code", F.when(F.col("usar_postal"), F.col("codigo_postal")))
     .withColumn("benchmark_ciudad", F.when(F.col("usar_ciudad"), F.col("ciudad")))
-    .withColumn("benchmark_fallback", F.col("usar_ciudad"))
+    .withColumn("benchmark_fallback", F.when(F.col("usar_ciudad"), True).otherwise(False))
     .withColumn("benchmark_n_business", F.when(F.col("usar_postal"), F.col("postal_peers")).when(F.col("usar_ciudad"), F.col("city_peers")))
-    .withColumn("benchmark_reviews", F.when(F.col("usar_postal"), F.col("pr") / F.col("postal_peers")).when(F.col("usar_ciudad"), F.col("cr") / F.col("city_peers")))
-    .withColumn("benchmark_checkins", F.when(F.col("usar_postal"), F.col("pc") / F.col("postal_peers")).when(F.col("usar_ciudad"), F.col("cc") / F.col("city_peers")))
-    .withColumn("benchmark_rating", F.when(F.col("benchmark_reviews") > 0, F.when(F.col("usar_postal"), F.col("ps")).otherwise(F.col("cs")) / F.col("benchmark_reviews")))
-    .withColumn("eligible_benchmark", F.col("usar_postal") | F.col("usar_ciudad")))
-rank = Window.partitionBy("anio_mes", "categoria_key", "codigo_postal").orderBy(F.col("rating_mes").desc_nulls_last(), "business_key")
+    # Se excluye el negocio actual tanto del numerador como del denominador.
+    .withColumn("benchmark_total_reviews", F.when(F.col("usar_postal"), F.col("pr") - F.when(F.col("peer_ok"), F.col("n_reviews_mes")).otherwise(0)).when(F.col("usar_ciudad"), F.col("cr") - F.when(F.col("peer_ok"), F.col("n_reviews_mes")).otherwise(0)))
+    .withColumn("benchmark_total_checkins", F.when(F.col("usar_postal"), F.col("pc") - F.when(F.col("peer_ok"), F.col("n_checkins_mes")).otherwise(0)).when(F.col("usar_ciudad"), F.col("cc") - F.when(F.col("peer_ok"), F.col("n_checkins_mes")).otherwise(0)))
+    .withColumn("benchmark_total_stars", F.when(F.col("usar_postal"), F.col("ps") - F.when(F.col("peer_ok"), F.col("suma_estrellas_mes")).otherwise(0)).when(F.col("usar_ciudad"), F.col("cs") - F.when(F.col("peer_ok"), F.col("suma_estrellas_mes")).otherwise(0)))
+    .withColumn("benchmark_reviews", F.when(F.col("benchmark_n_business") > 0, F.col("benchmark_total_reviews") / F.col("benchmark_n_business")))
+    .withColumn("benchmark_checkins", F.when(F.col("benchmark_n_business") > 0, F.col("benchmark_total_checkins") / F.col("benchmark_n_business")))
+    # El rating es estrellas totales dividido por reviews totales, no por el promedio de reviews.
+        .withColumn("benchmark_rating", F.when(F.col("benchmark_total_reviews") > 0, F.col("benchmark_total_stars") / F.col("benchmark_total_reviews")))
+    .withColumn("eligible_benchmark", F.col("usar_postal") | F.col("usar_ciudad"))
+    # El ranking debe respetar el nivel realmente utilizado por el benchmark.
+    .withColumn("_ranking_group",
+        F.when(F.col("usar_postal"), F.concat(F.lit("P|"), F.col("categoria_key").cast("string"), F.lit("|"), F.col("codigo_postal")))
+         .when(F.col("usar_ciudad"), F.concat(F.lit("C|"), F.col("categoria_key").cast("string"), F.lit("|"), F.col("ciudad")))))
+rank = Window.partitionBy("anio_mes", "_ranking_group").orderBy(F.col("rating_mes").desc_nulls_last(), "business_key")
 out = (out.withColumn("ranking_rating", F.when(F.col("eligible_benchmark"), F.row_number().over(rank)))
     .withColumn("delta_rating_vs_benchmark", F.col("rating_mes") - F.col("benchmark_rating"))
     .withColumn("delta_reviews_vs_benchmark", F.col("n_reviews_mes") - F.col("benchmark_reviews"))
