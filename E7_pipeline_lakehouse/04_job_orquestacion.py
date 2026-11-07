@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # E7.4 · Orquestación, monitoreo y FinOps
 # MAGIC **Cierra con:** M10 DataOps / MLOps / FinOps
@@ -27,8 +31,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: 2. Monitoreo — bitácora de corridas del pipeline
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: 2. Monitoreo — bitácora de corridas del pipeline
 # MAGIC CREATE TABLE IF NOT EXISTS workspace.yelp_gov.pipeline_bitacora (
 # MAGIC   ejecucion_ts     TIMESTAMP,
 # MAGIC   capa             STRING,
@@ -42,8 +46,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: 3. FinOps en Free Edition
 # MAGIC %md
+# MAGIC <!-- DBTITLE 1: 3. FinOps en Free Edition -->
 # MAGIC No hay factura, pero SÍ hay cuota — el mejor simulador de FinOps posible.
 # MAGIC > ✏️ TODO — Documentar 3 decisiones de eficiencia tomadas durante el proyecto y su efecto,
 # MAGIC > por ejemplo: muestreo del dataset, `trigger(availableNow)` en vez de streaming continuo,

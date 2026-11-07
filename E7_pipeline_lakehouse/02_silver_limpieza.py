@@ -16,12 +16,12 @@ from pyspark.sql import functions as F, Window
 
 SILVER = "workspace.yelp_silver"
 
-# E3 ya creó las tablas con COMMENT y PK/FK. TRUNCATE + INSERT conserva ese metadato.
+# E3 ya creó las tablas con COMMENT y PK/FK. INSERT OVERWRITE conserva ese
+# metadato y reemplaza los datos en una transacción Delta por tabla.
 def cargar(tabla, df):
     destino = f"{SILVER}.{tabla}"
-    spark.sql(f"TRUNCATE TABLE {destino}")
-    df.select(*spark.table(destino).columns).write.mode("append").insertInto(destino)
-    print(f"✔ {tabla}: {df.count():,} filas")
+    df.select(*spark.table(destino).columns).write.mode("overwrite").insertInto(destino)
+    print(f"✔ {tabla}: {spark.table(destino).count():,} filas")
 
 def normalizar_texto(columna):
     return F.trim(F.regexp_replace(F.col(columna), r"\s+", " "))
