@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # E7.3 · Silver → Gold: productos de datos
 # MAGIC **Cierra con:** M6 (construcción) + M9 (consumo)
@@ -311,7 +315,11 @@ dashboard = out.select(*[
 
 # COMMAND ----------
 
+# DBTITLE 1,Validación antes de publicar
 # DBTITLE 5: Validación antes de publicar
+# El contrato Gold declara benchmark_level NOT NULL. Los negocios-mes sin grupo
+# de pares suficiente llevan nivel 0 (sin benchmark), con eligible_benchmark = false.
+dashboard = dashboard.withColumn("benchmark_level", F.coalesce(F.col("benchmark_level"), F.lit(0)))
 productos = [
     ("dim_negocio", dim_negocio, ["business_key"]),
     ("dim_usuario", dim_usuario, ["user_key"]),
