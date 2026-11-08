@@ -26,7 +26,7 @@ from pyspark.sql import functions as F
 
 for e in ENTIDADES:
     (spark.read.json(f"{RAW}/{e}.json.gz")
-        .withColumn("_archivo_origen", F.input_file_name())
+        .withColumn("_archivo_origen", F.col("_metadata.file_path"))
         .withColumn("_fecha_ingesta", F.current_timestamp())
         .write.mode("overwrite")
         .saveAsTable(f"workspace.yelp_bronze.brz_{e}"))
