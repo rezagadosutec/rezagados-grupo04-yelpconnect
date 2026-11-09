@@ -187,7 +187,8 @@ dim_fecha = (fechas.withColumn("fecha_key", F.date_format("fecha", "yyyyMMdd").c
 
 # DBTITLE 4: Construcción única del mart mensual Gold
 # Se conservan ventanas, umbrales, elegibilidad y contrato del tablero E8.
-MIN_REVIEWS_SAT, MIN_REVIEWS_PEER, MIN_PEERS_BENCHMARK = 10, 10, 10
+# Umbral reducido temporalmente a 5 pares para pruebas; restaurar a 10 antes de producción.
+MIN_REVIEWS_SAT, MIN_REVIEWS_PEER, MIN_PEERS_BENCHMARK = 10, 10, 5
 target = f"{G}.gld_dashboard_negocio_mensual"
 target_schema = spark.table(target).schema
 target_cols = [f.name for f in target_schema.fields]

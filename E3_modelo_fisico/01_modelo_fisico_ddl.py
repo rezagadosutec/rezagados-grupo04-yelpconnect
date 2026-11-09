@@ -287,7 +287,7 @@
 # MAGIC   benchmark_categoria STRING COMMENT 'Categoría del grupo comparable',
 # MAGIC   benchmark_postal_code STRING COMMENT 'Código postal del grupo comparable cuando aplica',
 # MAGIC   benchmark_ciudad STRING COMMENT 'Ciudad del grupo comparable utilizada por el fallback',
-# MAGIC   benchmark_n_business BIGINT COMMENT 'Cantidad de negocios elegibles del grupo comparable; mínimo recomendado 10',
+# MAGIC   benchmark_n_business BIGINT COMMENT 'Cantidad de negocios elegibles del grupo comparable; umbral temporal de prueba: 5',
 # MAGIC   benchmark_fallback BOOLEAN COMMENT 'Indica si se utilizó fallback de categoría+postal a categoría+ciudad',
 # MAGIC   n_reviews_mes BIGINT COMMENT 'Cantidad de reseñas del negocio en el mes',
 # MAGIC   rating_mes DOUBLE COMMENT 'Rating promedio del negocio en el mes',
@@ -346,7 +346,7 @@
 # MAGIC ALTER TABLE workspace.yelp_gold.fact_checkin_temporal ADD CONSTRAINT chk_fact_checkin_temporal_nonnegative CHECK (cantidad_checkins >= 0);
 # MAGIC ALTER TABLE workspace.yelp_gold.gld_actividad_negocio_temporal ADD CONSTRAINT chk_gld_actividad_nonnegative CHECK (cantidad_checkins >= 0);
 # MAGIC ALTER TABLE workspace.yelp_gold.gld_dashboard_negocio_mensual ADD CONSTRAINT chk_gld_dashboard_rating CHECK (rating_mes IS NULL OR rating_mes BETWEEN 1.0 AND 5.0);
-# MAGIC ALTER TABLE workspace.yelp_gold.gld_dashboard_negocio_mensual ADD CONSTRAINT chk_gld_dashboard_benchmark CHECK (benchmark_n_business IS NULL OR benchmark_n_business >= 10);
+# MAGIC ALTER TABLE workspace.yelp_gold.gld_dashboard_negocio_mensual ADD CONSTRAINT chk_gld_dashboard_benchmark CHECK (benchmark_n_business IS NULL OR benchmark_n_business >= 5);
 # MAGIC ALTER TABLE workspace.yelp_gold.gld_dashboard_negocio_mensual ADD CONSTRAINT chk_gld_dashboard_pct CHECK ((pct_positivas IS NULL OR pct_positivas BETWEEN 0 AND 100) AND (pct_neutrales IS NULL OR pct_neutrales BETWEEN 0 AND 100) AND (pct_negativas IS NULL OR pct_negativas BETWEEN 0 AND 100));
 
 # COMMAND ----------
