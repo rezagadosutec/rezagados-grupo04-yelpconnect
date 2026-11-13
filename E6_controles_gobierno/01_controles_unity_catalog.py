@@ -144,6 +144,10 @@
 # MAGIC
 # MAGIC -- Aplicar la misma política tanto en Silver como en la dimensión Gold.
 # MAGIC -- Así, el dato queda protegido incluso para roles autorizados a consultar esas tablas.
+# MAGIC -- UC no permite máscara de columna en tablas con CHECK constraints: se retira
+# MAGIC -- chk_slv_user_stars (rango de estrellas_promedio) para poder enmascarar `nombre`;
+# MAGIC -- la validación equivalente puede registrarse como regla en yelp_gov.dq_reglas.
+# MAGIC ALTER TABLE workspace.yelp_silver.slv_user DROP CONSTRAINT IF EXISTS chk_slv_user_stars;
 # MAGIC ALTER TABLE workspace.yelp_silver.slv_user
 # MAGIC   ALTER COLUMN nombre SET MASK workspace.yelp_gov.mascara_nombre;
 # MAGIC ALTER TABLE workspace.yelp_gold.dim_usuario

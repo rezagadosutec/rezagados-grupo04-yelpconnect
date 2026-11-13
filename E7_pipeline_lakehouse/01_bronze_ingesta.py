@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # MAGIC %md
 # MAGIC # E7.1 · Ingesta a Bronze
 # MAGIC **Cierra con:** M6 Big Data (batch) + M7 Integración (incremental/streaming)
@@ -114,7 +118,7 @@ print(f"✔ brz_review: {spark.table('workspace.yelp_bronze.brz_review').count()
 # MAGIC ![Tabla Bronze de usuarios](../recursos/E7/01-bronze-ingesta/brz_user.png)
 # MAGIC
 # MAGIC ### Definition of Done (E7.1)
-
+# MAGIC
 # MAGIC - [ ] 5 tablas bronze pobladas con columnas de auditoría.
 # MAGIC - [ ] Experimento de idempotencia documentado.
 # MAGIC - [ ] Decisión batch vs streaming justificada por entidad (tabla en markdown).

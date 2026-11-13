@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # E4.1 · Glosario de Negocio
 # MAGIC **Cierra con:** M3 MDM y Metadata · **Formato oficial:** plantilla institucional

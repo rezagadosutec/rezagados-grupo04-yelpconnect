@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # E8 · Dashboard de BI (AI/BI Dashboard + Genie)
 # MAGIC **Cierra con:** M9 BI y Visualización
@@ -21,8 +25,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Q1 — Evolución de reseñas y rating (Producto)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Q1 — Evolución de reseñas y rating (Producto)
 # MAGIC SELECT anio_mes AS mes,
 # MAGIC        sum(n_reviews_mes) AS resenas,
 # MAGIC        round(sum(rating_mes * n_reviews_mes) / nullif(sum(n_reviews_mes), 0), 2) AS rating
@@ -31,8 +35,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Q2 — Salud de calidad de datos (CDO)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Q2 — Salud de calidad de datos (CDO)
 # MAGIC SELECT r.dimension, round(avg(res.pct_cumplimiento),2) AS cumplimiento,
 # MAGIC        sum(CASE WHEN NOT res.paso THEN 1 ELSE 0 END)  AS reglas_en_rojo
 # MAGIC FROM workspace.yelp_gov.dq_resultados res
@@ -42,8 +46,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Q3 — KPIs de gobierno (CDO)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Q3 — KPIs de gobierno (CDO)
 # MAGIC SELECT
 # MAGIC   (SELECT round(100.0 * sum(CASE WHEN descripcion_negocio IS NOT NULL THEN 1 ELSE 0 END) / count(*), 1)
 # MAGIC      FROM workspace.yelp_gov.diccionario_datos) AS pct_columnas_documentadas,
@@ -54,8 +58,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Q4 — Top de negocios por rating y volumen (Producto/Marketing)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Q4 — Top de negocios por rating y volumen (Producto/Marketing)
 # MAGIC SELECT b.nombre, b.ciudad, d.anio_mes, d.rating_mes, d.n_reviews_mes,
 # MAGIC        d.benchmark_rating, d.delta_rating_vs_benchmark, d.ranking_rating
 # MAGIC FROM workspace.yelp_gold.gld_dashboard_negocio_mensual d
@@ -66,8 +70,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Q5 — Check-ins por día y franja (Operaciones Comerciales)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Q5 — Check-ins por día y franja (Operaciones Comerciales)
 # MAGIC SELECT f.fecha, a.franja_horaria, sum(a.cantidad_checkins) AS checkins
 # MAGIC FROM workspace.yelp_gold.gld_actividad_negocio_temporal a
 # MAGIC JOIN workspace.yelp_gold.dim_fecha f USING (fecha_key)
@@ -76,8 +80,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Q6 — Distribución de satisfacción (Marketing)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Q6 — Distribución de satisfacción (Marketing)
 # MAGIC SELECT anio_mes AS mes,
 # MAGIC        sum(reviews_positivas) AS positivas,
 # MAGIC        sum(reviews_neutrales) AS neutrales,
@@ -89,8 +93,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Q7 — Reglas críticas y reseñas duplicadas (Trust & Safety)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Q7 — Reglas críticas y reseñas duplicadas (Trust & Safety)
 # MAGIC SELECT res.ejecucion_ts, r.regla_id, r.descripcion,
 # MAGIC        res.pct_cumplimiento, res.paso
 # MAGIC FROM workspace.yelp_gov.dq_resultados res
@@ -100,8 +104,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Q8 — Tendencia de ejecuciones del pipeline (Data Governance)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Q8 — Tendencia de ejecuciones del pipeline (Data Governance)
 # MAGIC SELECT date_trunc('day', ejecucion_ts) AS dia,
 # MAGIC        capa, count(*) AS registros_bitacora,
 # MAGIC        sum(filas) AS filas_procesadas,
@@ -109,12 +113,12 @@
 # MAGIC FROM workspace.yelp_gov.pipeline_bitacora
 # MAGIC GROUP BY date_trunc('day', ejecucion_ts), capa
 # MAGIC ORDER BY dia, capa;
-
+# MAGIC
 
 # COMMAND ----------
 
-# DBTITLE 1: Q9 — Estado actual del benchmark por negocio (Producto)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Q9 — Estado actual del benchmark por negocio (Producto)
 # MAGIC WITH rep AS (
 # MAGIC   SELECT b.*, n.nombre,
 # MAGIC          ROW_NUMBER() OVER (PARTITION BY b.business_key, b.anio_mes
@@ -161,8 +165,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Q10 — KPIs negocio versus benchmark (Producto)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Q10 — KPIs negocio versus benchmark (Producto)
 # MAGIC WITH rep AS (
 # MAGIC   SELECT b.*, n.nombre,
 # MAGIC          ROW_NUMBER() OVER (PARTITION BY b.business_key, b.anio_mes
@@ -190,8 +194,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Q11 — Ventanas móviles 3m, 6m y 12m (Producto)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Q11 — Ventanas móviles 3m, 6m y 12m (Producto)
 # MAGIC WITH rep AS (
 # MAGIC   SELECT b.*, n.nombre,
 # MAGIC          ROW_NUMBER() OVER (PARTITION BY b.business_key, b.anio_mes
@@ -216,8 +220,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Q12 — Actividad temporal por negocio (Operaciones Comerciales)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Q12 — Actividad temporal por negocio (Operaciones Comerciales)
 # MAGIC SELECT a.business_key,
 # MAGIC        n.nombre,
 # MAGIC        CONCAT(n.nombre, ' (', CAST(a.business_key AS STRING), ')') AS negocio_etiqueta,
@@ -234,8 +238,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: Q13 — Series negocio versus benchmark y satisfacción (Marketing)
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: Q13 — Series negocio versus benchmark y satisfacción (Marketing)
 # MAGIC WITH rep AS (
 # MAGIC   SELECT b.*, n.nombre,
 # MAGIC          ROW_NUMBER() OVER (PARTITION BY b.business_key, b.anio_mes
