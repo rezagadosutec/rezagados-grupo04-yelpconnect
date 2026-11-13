@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # MAGIC %md
 # MAGIC # 00 · Configuración del Lakehouse del grupo
 # MAGIC **Ejecutar UNA sola vez por grupo** (es idempotente: re-ejecutarlo no rompe nada).
@@ -40,6 +44,7 @@ print("Volume listo → /Volumes/workspace/yelp_bronze/raw/")
 
 # COMMAND ----------
 
+# DBTITLE 1,Tablas de control de gobierno (se llenan en E4, E5 y E6)
 # DBTITLE 1: Tablas de control de gobierno (se llenan en E4, E5 y E6)
 spark.sql(f"""
 CREATE TABLE IF NOT EXISTS {CATALOGO}.yelp_gov.glosario_negocio (
@@ -124,7 +129,32 @@ CREATE TABLE IF NOT EXISTS {CATALOGO}.yelp_gov.matriz_raci (
   clasificacion    STRING  COMMENT 'publica|interna|confidencial|pii'
 ) COMMENT 'E6 · Asignación de roles y responsabilidades sobre entidades'
 """)
-print("Tablas de control creadas ✔")
+
+# Semilla inicial basada en los roles y responsables documentados en E6.
+# Las clasificaciones son una propuesta para el caso y deben ser validadas por el Data Owner.
+# MERGE inserta entidades faltantes sin sobrescribir ajustes hechos por el grupo.
+spark.sql(f"""
+MERGE INTO {CATALOGO}.yelp_gov.matriz_raci AS destino
+USING (
+  SELECT c1 AS entidad, c2 AS dominio, c3 AS data_owner, c4 AS data_steward,
+         c5 AS data_custodian, c6 AS consumidores, c7 AS clasificacion
+  FROM VALUES
+   ('business', 'Negocio', 'efren.sistemas@gmail.com', 'celso.ibarcena@gmail.com', 'chijar@gmail.com', 'alex.galindo.romero@gmail.com; dfloressgonz@gmail.com', 'publica'),
+   ('review',   'Contenido', 'efren.sistemas@gmail.com', 'celso.ibarcena@gmail.com', 'chijar@gmail.com', 'alex.galindo.romero@gmail.com; dfloressgonz@gmail.com', 'pii'),
+   ('user',     'Usuario', 'efren.sistemas@gmail.com', 'celso.ibarcena@gmail.com', 'chijar@gmail.com', 'alex.galindo.romero@gmail.com; dfloressgonz@gmail.com', 'pii'),
+   ('tip',      'Contenido', 'efren.sistemas@gmail.com', 'celso.ibarcena@gmail.com', 'chijar@gmail.com', 'alex.galindo.romero@gmail.com; dfloressgonz@gmail.com', 'pii'),
+   ('checkin',  'Interacción', 'efren.sistemas@gmail.com', 'celso.ibarcena@gmail.com', 'chijar@gmail.com', 'alex.galindo.romero@gmail.com; dfloressgonz@gmail.com', 'publica')
+  AS v(c1, c2, c3, c4, c5, c6, c7)
+) AS origen
+ON destino.entidad = origen.entidad
+WHEN NOT MATCHED THEN INSERT (
+ entidad, dominio, data_owner, data_steward, data_custodian, consumidores, clasificacion
+) VALUES (
+ origen.entidad, origen.dominio, origen.data_owner, origen.data_steward,
+ origen.data_custodian, origen.consumidores, origen.clasificacion
+)
+""")
+print("Tablas de control creadas ✔; matriz RACI inicializada para business, review, user, tip y checkin")
 
 # COMMAND ----------
 

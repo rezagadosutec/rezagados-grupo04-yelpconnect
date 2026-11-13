@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "5"
+# ///
 # MAGIC %md
 # MAGIC # 01 · Verificación de datos crudos
 # MAGIC Valida que los 5 archivos del Yelp Open Dataset (muestreados) estén en el Volume
@@ -45,4 +49,4 @@ for e in ESPERADOS:
 # MAGIC >    duplicados de identificadores, referencias de `business_id`/`user_id` sin pareja,
 # MAGIC >    estrellas fuera del rango esperado (1–5) y conteos negativos. Las reseñas y tips
 # MAGIC >    contienen texto libre, que requiere considerar PII indirecta y reglas de limpieza.
-
+# MAGIC
