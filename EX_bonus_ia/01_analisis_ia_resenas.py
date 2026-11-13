@@ -1,4 +1,8 @@
 # Databricks notebook source
+# /// script
+# [tool.databricks.environment]
+# environment_version = "6"
+# ///
 # MAGIC %md
 # MAGIC # EX · Asistente de insights de reseñas para Producto
 # MAGIC **Cierra con:** M8 IA y Datos No Estructurados · **Puntaje:** bonus
@@ -17,8 +21,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: 1 — Elegir un negocio con una señal que Producto pueda investigar
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: 1 — Elegir un negocio con una señal que Producto pueda investigar
 # MAGIC -- Busca negocios con rating menor que en su mes previo con reseñas (mínimo 5 reseñas
 # MAGIC -- en cada punto). Elige un business_id del resultado y úsalo en la celda siguiente.
 # MAGIC -- La comparación es exploratoria: los meses comparados pueden no ser consecutivos.
@@ -44,8 +48,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: 2 — Analizar 10 reseñas recientes de baja calificación
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: 2 — Analizar 10 reseñas recientes de baja calificación
 # MAGIC -- Reemplazar el valor por el business_id copiado de la consulta anterior.
 # MAGIC -- Tomamos hasta 10 reseñas recientes de 1-2 estrellas en los dos meses calendario
 # MAGIC -- más recientes disponibles. Así probamos IA con costo acotado y un caso relevante.
@@ -53,7 +57,7 @@
 # MAGIC COMMENT 'Hasta 10 reseñas recientes de baja calificación de un negocio, enriquecidas con IA para demo de Producto; texto con acceso restringido.'
 # MAGIC AS
 # MAGIC WITH parametros AS (
-# MAGIC   SELECT 'REEMPLAZAR_CON_BUSINESS_ID' AS business_id
+# MAGIC   SELECT 'j-qtdD55OLfSqfsWuQTDJg' AS business_id
 # MAGIC ),
 # MAGIC max_fecha AS (
 # MAGIC   SELECT max(r.fecha_resena) AS fecha_max
@@ -71,19 +75,19 @@
 # MAGIC   WHERE r.business_id = p.business_id
 # MAGIC     AND r.fecha_resena >= add_months(date_trunc('MONTH', f.fecha_max), -1)
 # MAGIC     AND r.fecha_resena <= f.fecha_max
-# MAGIC     AND r.estrellas <= 2
+# MAGIC     AND r.estrellas <= 3
 # MAGIC     AND r.texto IS NOT NULL AND trim(r.texto) <> ''
 # MAGIC )
 # MAGIC SELECT review_id, business_id, estrellas, fecha_resena, texto, votos_utiles,
 # MAGIC        ai_analyze_sentiment(texto) AS sentimiento,
 # MAGIC        ai_classify(texto, array('comida','servicio','precio','ambiente','otro')) AS tema
 # MAGIC FROM candidatas
-# MAGIC WHERE rn <= 10;
+# MAGIC WHERE rn <= 500;
 
 # COMMAND ----------
 
-# DBTITLE 1: 3 — Validar las etiquetas antes de confiar en ellas
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: 3 — Validar las etiquetas antes de confiar en ellas
 # MAGIC -- Inspeccionar los valores reales que devolvió el modelo.
 # MAGIC -- Revisar manualmente ejemplos; las etiquetas IA son señales, no verdad de negocio.
 # MAGIC SELECT tema, sentimiento, COUNT(*) AS cantidad
@@ -93,8 +97,8 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: 4 — Crear una vista de consumo para Genie
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: 4 — Crear una vista de consumo para Genie
 # MAGIC -- La vista añade el nombre/ciudad del negocio y el mes para que Producto pueda
 # MAGIC -- preguntar por tendencias y abrir reseñas de ejemplo. No exponerla a todo usuario:
 # MAGIC -- el texto puede contener información personal.
@@ -122,23 +126,26 @@
 
 # COMMAND ----------
 
-# DBTITLE 1: 5 — Obtener los 10 casos prioritarios y sus temas
+# DBTITLE 1,5 — Obtener los 10 casos prioritarios y sus temas
 # MAGIC %sql
+# MAGIC -- DBTITLE 1: 5 — Obtener los 10 casos prioritarios y sus temas
 # MAGIC -- Rating 1-2 define candidato de revisión. Orden: estrellas más bajas, sentimiento
 # MAGIC -- negativo si el modelo lo identificó, recencia y votos útiles. No equivale a fraude
 # MAGIC -- ni a severidad confirmada. Mostrar menos de 10 si no hay suficientes candidatas.
 # MAGIC WITH priorizadas AS (
-# MAGIC   SELECT negocio, ciudad, anio_mes, review_id, fecha_resena, estrellas, tema,
-# MAGIC          sentimiento, votos_utiles, texto,
+# MAGIC   SELECT v.negocio, v.ciudad, v.anio_mes, v.review_id, v.fecha_resena, v.estrellas, v.tema,
+# MAGIC          v.sentimiento, t.votos_utiles, v.texto,
 # MAGIC          row_number() OVER (
-# MAGIC            ORDER BY estrellas ASC,
-# MAGIC                     CASE WHEN lower(sentimiento) LIKE '%negative%'
-# MAGIC                                OR lower(sentimiento) LIKE '%negativ%' THEN 0 ELSE 1 END,
-# MAGIC                     fecha_resena DESC,
-# MAGIC                     coalesce(votos_utiles, 0) DESC
+# MAGIC            ORDER BY v.estrellas ASC,
+# MAGIC                     CASE WHEN lower(v.sentimiento) LIKE '%negative%'
+# MAGIC                                OR lower(v.sentimiento) LIKE '%negativ%' THEN 0 ELSE 1 END,
+# MAGIC                     v.fecha_resena DESC,
+# MAGIC                     coalesce(t.votos_utiles, 0) DESC
 # MAGIC          ) AS prioridad
-# MAGIC   FROM workspace.yelp_gold.vw_resenas_producto
-# MAGIC   WHERE estrellas <= 2
+# MAGIC   FROM workspace.yelp_gold.vw_resenas_producto v
+# MAGIC   LEFT JOIN workspace.yelp_gold.gld_resenas_enriquecidas t
+# MAGIC     ON t.review_id = v.review_id
+# MAGIC   WHERE v.estrellas <= 3
 # MAGIC )
 # MAGIC SELECT prioridad, negocio, ciudad, anio_mes, review_id, fecha_resena,
 # MAGIC        estrellas, tema, sentimiento, votos_utiles, texto
@@ -149,7 +156,7 @@
 # MAGIC -- Resumen de temas entre las reseñas candidatas (rating 1-2) del negocio seleccionado.
 # MAGIC SELECT tema, COUNT(*) AS cantidad_resenas
 # MAGIC FROM workspace.yelp_gold.vw_resenas_producto
-# MAGIC WHERE estrellas <= 2
+# MAGIC WHERE estrellas <= 3
 # MAGIC GROUP BY tema
 # MAGIC ORDER BY cantidad_resenas DESC;
 

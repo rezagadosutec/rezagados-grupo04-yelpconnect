@@ -124,7 +124,29 @@ CREATE TABLE IF NOT EXISTS {CATALOGO}.yelp_gov.matriz_raci (
   clasificacion    STRING  COMMENT 'publica|interna|confidencial|pii'
 ) COMMENT 'E6 · Asignación de roles y responsabilidades sobre entidades'
 """)
-print("Tablas de control creadas ✔")
+
+# Semilla inicial basada en los roles y responsables documentados en E6.
+# Las clasificaciones son una propuesta para el caso y deben ser validadas por el Data Owner.
+# MERGE inserta entidades faltantes sin sobrescribir ajustes hechos por el grupo.
+spark.sql(f"""
+MERGE INTO {CATALOGO}.yelp_gov.matriz_raci AS destino
+USING (
+ VALUES
+   ('business', 'Negocio', 'efren.sistemas@gmail.com', 'celso.ibarcena@gmail.com', 'chijar@gmail.com', 'alex.galindo.romero@gmail.com; dfloressgonz@gmail.com', 'publica'),
+   ('review',   'Contenido', 'efren.sistemas@gmail.com', 'celso.ibarcena@gmail.com', 'chijar@gmail.com', 'alex.galindo.romero@gmail.com; dfloressgonz@gmail.com', 'pii'),
+   ('user',     'Usuario', 'efren.sistemas@gmail.com', 'celso.ibarcena@gmail.com', 'chijar@gmail.com', 'alex.galindo.romero@gmail.com; dfloressgonz@gmail.com', 'pii'),
+   ('tip',      'Contenido', 'efren.sistemas@gmail.com', 'celso.ibarcena@gmail.com', 'chijar@gmail.com', 'alex.galindo.romero@gmail.com; dfloressgonz@gmail.com', 'pii'),
+   ('checkin',  'Interacción', 'efren.sistemas@gmail.com', 'celso.ibarcena@gmail.com', 'chijar@gmail.com', 'alex.galindo.romero@gmail.com; dfloressgonz@gmail.com', 'publica')
+) AS origen(entidad, dominio, data_owner, data_steward, data_custodian, consumidores, clasificacion)
+ON destino.entidad = origen.entidad
+WHEN NOT MATCHED THEN INSERT (
+ entidad, dominio, data_owner, data_steward, data_custodian, consumidores, clasificacion
+) VALUES (
+ origen.entidad, origen.dominio, origen.data_owner, origen.data_steward,
+ origen.data_custodian, origen.consumidores, origen.clasificacion
+)
+""")
+print("Tablas de control creadas ✔; matriz RACI inicializada para business, review, user, tip y checkin")
 
 # COMMAND ----------
 
